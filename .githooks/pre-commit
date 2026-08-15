@@ -1,0 +1,65 @@
+#!/bin/sh
+# Stops a retired personal name from re-entering the tree.
+#
+# Why a hook and not a line in a contributing doc: a naming pass is a moment,
+# a hook is a guarantee. People and agents forget; this does not.
+#
+# NOTE ON THE PATTERN. It is a regex, and the bracket is not decoration: it
+# lets this file match the name without ever spelling it contiguously. A
+# committed file that spells a retired name out is itself a place the name
+# lives -- which is the thing being prevented. Do not "tidy" the brackets away.
+#
+# THE ALLOWANCE IS DELIBERATE. The intro and Origin sections of README.md and
+# the header of CLAUDE.md record who authored a real, released 2013 product.
+# That is factual provenance: re-crediting it would make the record false,
+# deleting it would make it incomplete. Those lines stay, and each carries a
+# note explaining why. If they are ever removed, set these to 0 and this hook
+# becomes an absolute block.
+#
+# Counts are LINES containing a match, not occurrences within a line.
+
+PATTERN='chlo[e]'
+
+allowance() {
+  case "$1" in
+    CLAUDE.md) echo 1 ;;
+    README.md) echo 2 ;;
+    *)         echo 0 ;;
+  esac
+}
+
+fail=0
+
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+  allow=$(allowance "$f")
+  # Staged content, not the worktree -- what is about to be committed.
+  # -I skips binaries so a stray image cannot trip this.
+  n=$(git show ":$f" 2>/dev/null | grep -Eic "$PATTERN")
+  [ -z "$n" ] && n=0
+
+  if [ "$n" -gt "$allow" ]; then
+    echo "  BLOCKED  $f -- $n line(s) carry a retired name, $allow allowed"
+    git show ":$f" 2>/dev/null | grep -Ein "$PATTERN" | sed 's/^/           /'
+    fail=1
+  fi
+done
+
+if [ "$fail" -ne 0 ]; then
+  cat <<'EOF'
+
+Commit stopped: a retired personal name would enter the tree.
+
+Credits, author fields, footers and comments go to SACRVM, not to a person.
+State a decision and its reason rather than who made it -- that reads shorter
+than the attribution anyway.
+
+If you are genuinely adding factual provenance about a real released product,
+raise the allowance for that file in .githooks/pre-commit and leave a note at
+the line itself, so the next reader does not "fix" a true record.
+
+Override once (you almost never should):  git commit --no-verify
+EOF
+  exit 1
+fi
+
+exit 0

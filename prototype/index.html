@@ -1,0 +1,660 @@
+<!-- GENERATED from prototype/app.html by build.js — edit app.html, then run `npm run build` -->
+<title>Color Bucket</title>
+<style>
+:root {
+  --ground: #F5F4F1;
+  --panel: #FDFDFB;
+  --ink: #1D1C19;
+  --ink-soft: #6E6B63;
+  --line: rgba(29,28,25,.14);
+  --chip-ring: rgba(29,28,25,.2);
+  --focus: #1D1C19;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #191A1C;
+    --panel: #212226;
+    --ink: #ECEAE4;
+    --ink-soft: #9B988F;
+    --line: rgba(236,234,228,.16);
+    --chip-ring: rgba(236,234,228,.25);
+    --focus: #ECEAE4;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #191A1C;
+  --panel: #212226;
+  --ink: #ECEAE4;
+  --ink-soft: #9B988F;
+  --line: rgba(236,234,228,.16);
+  --chip-ring: rgba(236,234,228,.25);
+  --focus: #ECEAE4;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+.disp { font-family: Bahnschrift, 'DIN Alternate', 'Arial Narrow', 'Segoe UI', sans-serif; }
+.mono { font-family: 'Cascadia Code', Consolas, 'SF Mono', monospace; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+
+header {
+  display: flex; align-items: baseline; gap: 14px;
+  padding: 14px 22px; border-bottom: 1px solid var(--line);
+}
+.wordmark { font-size: 19px; font-weight: 700; letter-spacing: .01em; }
+.tagline { color: var(--ink-soft); font-size: 13px; }
+.proto { margin-left: auto; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+
+#stage { display: grid; grid-template-columns: 400px 1fr; min-height: calc(100vh - 54px); }
+
+/* ---------- Recipe column ---------- */
+#recipe { padding: 22px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 18px; }
+.sec-label { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 8px; }
+
+/* Paint pots */
+.shelf-tabs { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 0 0 10px; }
+.shelf-tabs button {
+  border: 0; background: none; padding: 2px 0; font-size: 11.5px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft);
+  border-bottom: 2px solid transparent;
+}
+.shelf-tabs button:hover { color: var(--ink); }
+.shelf-tabs button[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+#pots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.pot {
+  position: relative; aspect-ratio: 1; border-radius: 6px;
+  border: 1px solid var(--chip-ring); padding: 0;
+}
+.pot:hover { transform: translateY(-2px); }
+.pot[data-n]::after {
+  content: attr(data-n);
+  position: absolute; top: -6px; right: -6px;
+  min-width: 16px; height: 16px; padding: 0 3px;
+  background: var(--ink); color: var(--ground);
+  border-radius: 8px; font-size: 10px; line-height: 16px; font-weight: 700;
+}
+.pots-hint { font-size: 12px; color: var(--ink-soft); margin: 8px 0 0; }
+
+#buckets { display: flex; flex-direction: column; gap: 8px; }
+.bucket {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  padding: 8px 10px;
+}
+.chip {
+  width: 40px; height: 40px; border-radius: 6px; border: 1px solid var(--chip-ring);
+  padding: 0; position: relative; overflow: hidden; flex: 0 0 auto;
+}
+.chip input { position: absolute; inset: -8px; width: 60px; height: 60px; border: 0; padding: 0; cursor: pointer; }
+.b-name { flex: 1; font-size: 13px; min-width: 0; }
+.b-name .hex-in {
+  display: block; width: 92px; max-width: 100%;
+  border: 0; border-bottom: 1px dashed transparent; border-radius: 0;
+  background: none; padding: 0; margin: 0;
+  font-size: 12.5px; color: var(--ink-soft);
+}
+.b-name .hex-in:hover { border-bottom-color: var(--chip-ring); }
+.b-name .hex-in:focus { color: var(--ink); border-bottom-color: var(--ink-soft); }
+.parts { display: flex; align-items: center; gap: 6px; }
+.parts button {
+  width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--line);
+  background: none; line-height: 1; font-size: 15px;
+}
+.parts button:hover { background: var(--ground); }
+.parts .n { min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; font-size: 13px; }
+.b-del { border: 0; background: none; color: var(--ink-soft); font-size: 15px; padding: 4px 6px; }
+.b-del:hover { color: var(--ink); }
+#add {
+  border: 1px dashed var(--line); border-radius: 6px; background: none;
+  padding: 9px; color: var(--ink-soft); width: 100%; margin-top: 8px;
+}
+#add:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+.modes { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.modes button { border: 0; background: none; padding: 7px 16px; font-size: 13px; letter-spacing: .04em; }
+.modes button[aria-pressed="true"] { background: var(--ink); color: var(--ground); }
+.mode-note { font-size: 12px; color: var(--ink-soft); margin: 8px 0 0; }
+
+#palette { margin-top: auto; }
+#swatches { display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; }
+.sw {
+  width: 44px; height: 44px; border-radius: 6px; border: 1px solid var(--chip-ring); padding: 0;
+}
+.sw:hover { transform: translateY(-2px); }
+.pal-empty { color: var(--ink-soft); font-size: 12.5px; }
+#copyPal { margin-top: 10px; border: 1px solid var(--line); background: none; border-radius: 6px; padding: 7px 12px; font-size: 12.5px; }
+#copyPal:hover { background: var(--panel); }
+
+/* ---------- Result ---------- */
+#result { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 40px 24px; transition: background .25s ease; }
+#hex { font-size: clamp(44px, 9vw, 104px); font-weight: 700; letter-spacing: .01em; margin: 0; user-select: all; }
+#resName { font-size: 13px; letter-spacing: .18em; text-transform: uppercase; opacity: .75; margin: 0; }
+.r-actions { display: flex; gap: 10px; margin-top: 14px; }
+.r-actions button {
+  border: 1.5px solid currentColor; background: none; border-radius: 6px;
+  padding: 9px 18px; font-size: 13.5px; letter-spacing: .03em;
+}
+.r-actions button:hover { background: rgba(127,127,127,.18); }
+#compare {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 9px; font-size: 12.5px; opacity: .8;
+}
+#compare .cmp-chip { width: 22px; height: 22px; border-radius: 5px; border: 1px solid currentColor; }
+#toast {
+  position: fixed; bottom: 22px; right: 22px; background: var(--ink); color: var(--ground);
+  padding: 9px 16px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+#toast.on { opacity: 1; }
+
+footer { padding: 12px 22px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 12px; }
+
+@media (max-width: 860px) {
+  #stage { grid-template-columns: 1fr; min-height: 0; }
+  #result { order: -1; min-height: 42vh; position: sticky; top: 0; z-index: 5; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+  #recipe { border-right: 0; }
+  #compare { position: static; transform: none; margin-top: 6px; }
+  #palette { margin-top: 6px; }
+}
+</style>
+
+<header>
+  <span class="wordmark disp">Color Bucket</span>
+  <span class="tagline">Mix colors like paint, not like numbers.</span>
+  <span class="proto disp">Prototype &middot; 2026</span>
+</header>
+
+<div id="stage">
+  <aside id="recipe">
+    <div>
+      <p class="sec-label disp">Paint pots</p>
+      <div class="shelf-tabs" id="shelfTabs" role="group" aria-label="Choose a paint box"></div>
+      <div id="pots"></div>
+      <p class="pots-hint">Tap a pot to add a dab &mdash; tap again for another part.</p>
+    </div>
+    <div>
+      <p class="sec-label disp">Recipe</p>
+      <div id="buckets"></div>
+      <button id="add" type="button">+ Custom color</button>
+    </div>
+    <div>
+      <p class="sec-label disp">Mixing mode</p>
+      <div class="modes" role="group" aria-label="Mixing mode">
+        <button type="button" id="mPig" aria-pressed="true">Pigment</button>
+        <button type="button" id="mRgb" aria-pressed="false">RGB</button>
+      </div>
+      <p class="mode-note" id="modeNote">Pigment mixes subtractively &mdash; spectral Kubelka-Munk over 38 wavelength bands: yellow + blue makes green, like on a palette, not in a color space.</p>
+    </div>
+    <div id="palette">
+      <p class="sec-label disp">Palette</p>
+      <div id="swatches"><span class="pal-empty">Nothing here yet &mdash; mix something and save it.</span></div>
+      <button id="copyPal" type="button" hidden>Copy all hex values</button>
+    </div>
+  </aside>
+
+  <main id="result" aria-live="polite">
+    <p id="resName" class="disp">Your mix</p>
+    <h1 id="hex" class="mono">#000000</h1>
+    <div class="r-actions">
+      <button id="copyHex" type="button">Copy hex</button>
+      <button id="toPal" type="button">Save to palette</button>
+    </div>
+    <div id="compare"><span class="cmp-chip" id="cmpChip"></span><span id="cmpText"></span></div>
+  </main>
+</div>
+
+<footer>&ldquo;delivers incredible results. I was impressed.&rdquo; &mdash; a user, January 2013 &middot; Color Bucket revival, prototype by SACRVM &middot; Mixing engine: spectral.js &copy; Ronald van Wijnen (MIT)</footer>
+<div id="toast" role="status">Copied</div>
+
+<script>
+/*! spectral.js v3.0.0 | (c) 2025 Ronald van Wijnen | MIT License | https://github.com/rvanwijnen/spectral.js */
+!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"function"==typeof define&&define.amd?define(["exports"],e):e((t=t||self).spectral={})}(this,(function(t){class e{constructor(...t){1===t.length&&("string"==typeof t[0]&&(this.sRGB=G(t[0]).slice(0,3),this.lRGB=l(this.sRGB),this.R=R(this.lRGB),this.XYZ=g(this.R)),Array.isArray(t[0])&&(38===t[0].length?(this.R=t[0],this.XYZ=g(this.R),this.lRGB=u(this.XYZ),this.sRGB=o(this.lRGB)):(this.sRGB=t[0],this.lRGB=l(this.sRGB),this.R=R(this.lRGB),this.XYZ=g(this.R))))}get OKLab(){return this._OKLab??=c(this.XYZ)}get OKLCh(){return this._OKLCh??=M(this.OKLab)}get KS(){return this._KS??=this.R.map((t=>i(t)))}get luminance(){return this._luminance??=Math.max(Number.EPSILON,this.XYZ[1])}get tintingStrength(){return this._tintingStrength??=1}set tintingStrength(t){this._tintingStrength=t}inGamut=({epsilon:t=0}={})=>r(this.lRGB,t);toGamut=({method:t="map"}={})=>{switch(t.toLowerCase()){case"clip":return new e(this.sRGB.map((t=>B.clamp(t,0,255))));case"map":return a(this);default:throw new TypeError(`Unknown method: '${t}'`)}};toString=({format:t="hex",method:e="map"}={})=>{let r;if(this.inGamut())r=this.sRGB;else switch(e.toLowerCase()){case"clip":r=this.sRGB.map((t=>B.clamp(t,0,255)));break;case"map":r=a(this).sRGB;break;default:throw new TypeError(`Unknown method: '${e}'`)}switch(t.toLowerCase()){case"hex":return`#${r.map((t=>t.toString(16).padStart(2,"0"))).join("").toUpperCase()}`;case"rgb":return`rgb(${r.join(", ")})`;default:throw new TypeError(`Unknown format: '${t}'`)}}}const r=(t,{epsilon:e=0}={})=>t.every((t=>t>=-e&&t<=1+e)),n=(t,e)=>{let[r,n,a]=t,[i,s,h]=e;return((r-i)**2+(n-s)**2+(a-h)**2)**.5},a=(t,{jnd:a=.03,e:i=1e-4}={})=>{let s=t.OKLCh[0];if(s>=1)return new e([255,255,255]);if(s<=0)return new e([0,0,0]);if(r(t.lRGB))return t;let h=t.OKLCh[2],l=0,c=t.OKLCh[1],M=!0,g=t.lRGB,R=m(g.map((t=>B.clamp(t)))),G=n(R,m(g));if(G<a)return new e(o(u(p(R))));for(;c-l>i;){const t=(l+c)/2;let e=f([s,t,h]),o=p(e);if(g=u(o),M&&r(g))l=t;else if(R=m(g.map((t=>B.clamp(t)))),G=n(R,e),G<a){if(a-G<i)break;M=!1,l=t}else c=t}return new e(o(u(p(R))))},i=t=>(1-t)**2/(2*t),s=t=>1+t-(t**2+2*t)**.5,h=(...t)=>{let r=new Array(38);for(let e=0;e<38;e++){let n=0,a=0;for(let[r,i]of t){let t=i**2*r.tintingStrength**2*r.luminance;a+=t,n+=r.KS[e]*t}r[e]=s(n/a)}return new e(r)},l=t=>t.map((t=>(t=>t>.04045?((t+.055)/1.055)**2.4:t/12.92)(t/255))),o=t=>t.map((t=>Math.round(255*(t=>t>.0031308?1.055*t**(1/2.4)-.055:12.92*t)(t)))),u=t=>B.mulMatVec(w.XYZ_RGB,t),m=t=>c((t=>B.mulMatVec(w.RGB_XYZ,t))(t)),c=t=>{let e=B.mulMatVec(w.XYZ_LMS,t).map((t=>Math.cbrt(t)));return B.mulMatVec(w.LMS_LAB,e)},p=t=>{let e=B.mulMatVec(w.LAB_LMS,t).map((t=>t**3));return B.mulMatVec(w.LMS_XYZ,e)},M=t=>{let[e,r,n]=t;const a=(r*r+n*n)**.5,i=180*Math.atan2(n,r)/Math.PI;return[e,a,i>=0?i:i+360]},f=t=>{let[e,r,n]=t;return[e,r*Math.cos(n*Math.PI/180),r*Math.sin(n*Math.PI/180)]},g=t=>B.mulMatVec(d.CMF,t),R=t=>{let e=Math.min(...t);t=[t[0]-e,t[1]-e,t[2]-e];let r=Math.min(t[1],t[2]),n=Math.min(t[0],t[2]),a=Math.min(t[0],t[1]),i=Math.max(0,Math.min(t[0]-t[2],t[0]-t[1])),s=Math.max(0,Math.min(t[1]-t[2],t[1]-t[0])),h=Math.max(0,Math.min(t[2]-t[1],t[2]-t[0]));const l=new Array(38);for(let t=0;t<38;t++)l[t]=Math.max(Number.EPSILON,e*L.W[t]+r*L.C[t]+n*L.M[t]+a*L.Y[t]+i*L.R[t]+s*L.G[t]+h*L.B[t]);return l},B={lerp:(t,e,r)=>t+(e-t)*r,clamp:(t,e=0,r=1)=>Math.min(Math.max(t,e),r),dot:(t,e)=>t.reduce(((t,r,n)=>t+r*e[n]),0),mulMatVec:(t,e)=>t.map((t=>B.dot(t,e)))},G=t=>"#"===t[0]?(t=4===t.length?t.replace(/./g,(t=>t+t)).slice(1):t.slice(1),[parseInt(t.substring(0,2),16),parseInt(t.substring(2,4),16),parseInt(t.substring(4,6),16),8===t.length?parseInt(t.substring(6,8),16)/255:1]):t.startsWith("rgb")?t.slice(t.indexOf("(")+1,-1).split(",").map(((t,e)=>e<3&&t.includes("%")?Math.round(2.55*parseFloat(t)):parseFloat(t))):NaN,L=Object.freeze({W:[1.00116072718764,1.00116065159728,1.00116031922747,1.00115867270789,1.00115259844552,1.00113252528998,1.00108500663327,1.00099687889453,1.00086525152274,1.0006962900094,1.00050496114888,1.00030808187992,1.00011966602013,.999952765968407,.999821836899297,.999738609557593,.999709551639612,.999731930210627,.999799436346195,.999900330316671,1.00002040652611,1.00014478793658,1.00025997903412,1.00035579697089,1.00042753780269,1.00047623344888,1.00050720967508,1.00052519156373,1.00053509606896,1.00054022097482,1.00054272816784,1.00054389569087,1.00054448212151,1.00054476959992,1.00054489887762,1.00054496254689,1.00054498927058,1.000544996993],C:[.970585001322962,.970592498143425,.970625348729891,.970786806119017,.971368673228248,.973163230621252,.976740223158765,.981587605491377,.986280265652949,.989949147689134,.99249270153842,.994145680405256,.995183975033212,.995756750110818,.99591281828671,.995606157834528,.994597600961854,.99221571549237,.986236452783249,.967943337264541,.891285004244943,.536202477862053,.154108119001878,.0574575093228929,.0315349873107007,.0222633920086335,.0182022841492439,.016299055973264,.0153656239334613,.0149111568733976,.0146954339898235,.0145964146717719,.0145470156699655,.0145228771899495,.0145120341118965,.0145066940939832,.0145044507314479,.0145038009464639],M:[.990673557319988,.990671524961979,.990662582353421,.990618107644795,.99045148087871,.989871081400204,.98828660875964,.984290692797504,.973934905625306,.941817838460145,.817390326195156,.432472805065729,.13845397825887,.0537347216940033,.0292174996673231,.021313651750859,.0201349530181136,.0241323096280662,.0372236145223627,.0760506552706601,.205375471942399,.541268903460439,.815841685086486,.912817704123976,.946339830166962,.959927696331991,.966260595230312,.969325970058424,.970854536721399,.971605066528128,.971962769757392,.972127272274509,.972209417745812,.972249577678424,.972267621998742,.97227650946215,.972280243306874,.97228132482656],Y:[.0210523371789306,.0210564627517414,.0210746178695038,.0211649058448753,.0215027957272504,.0226738799041561,.0258235649693629,.0334879385639851,.0519069663740307,.100749014833473,.239129899706847,.534804312272748,.79780757864303,.911449894067384,.953797963004507,.971241615465429,.979303123807588,.983380119507575,.985461246567755,.986435046976605,.986738250670141,.986617882445032,.986277776758643,.985860592444056,.98547492767621,.985176934765558,.984971574014181,.984846303415712,.984775351811199,.984738066625265,.984719648311765,.984711023391939,.984706683300676,.984704554393091,.98470359630937,.984703124077552,.98470292561509,.984702868122795],R:[.0315605737777207,.0315520718330149,.0315148215513658,.0313318044982702,.0306729857725527,.0286480476989607,.0246450407045709,.0192960753663651,.0142066612220556,.0102942608878609,.0076191460521811,.005898041083542,.0048233247781713,.0042298748350633,.0040599171299341,.0043533695594676,.0053434425970201,.0076917201010463,.0135969795736536,.0316975442661115,.107861196355249,.463812603168704,.847055405272011,.943185409393918,.968862150696558,.978030667473603,.982043643854306,.983923623718707,.984845484154382,.985294275814596,.985507295219825,.985605071539837,.985653849933578,.985677685033883,.985688391806122,.985693664690031,.985695879848205,.985696521463762],G:[.0095560747554212,.0095581580120851,.0095673245444588,.0096129126297349,.0097837090401843,.010378622705871,.0120026452378567,.0160977721473922,.026706190223168,.0595555440185881,.186039826532826,.570579820116159,.861467768400292,.945879089767658,.970465486474305,.97841363028445,.979589031411224,.975533536908632,.962288755397813,.92312157451312,.793434018943111,.459270135902429,.185574103666303,.0881774959955372,.05436302287667,.0406288447060719,.034221520431697,.0311185790956966,.0295708898336134,.0288108739348928,.0284486271324597,.0282820301724731,.0281988376490237,.0281581655342037,.0281398910216386,.0281308901665811,.0281271086805816,.0281260133612096],B:[.979404752502014,.97940070684313,.979382903470261,.979294364945594,.97896301460857,.977814466694043,.974724321133836,.967198482343973,.949079657530575,.900850128940977,.76315044546224,.465922171649319,.201263280451005,.0877524413419623,.0457176793291679,.0284706050521843,.020527176756985,.0165302792310211,.0145135107212858,.0136003508637687,.0133604258769571,.013548894314568,.0139594356366992,.014443425575357,.0148854440621406,.0152254296999746,.0154592848180209,.0156018026485961,.0156824871281936,.0157248764360615,.0157458108784121,.0157556123350225,.0157605443964911,.0157629637515278,.0157640525629106,.015764589232951,.0157648147772649,.0157648801149616]}),d=Object.freeze({CMF:[[646919989576e-16,.0002194098998132,.0011205743509343,.0037666134117111,.011880553603799,.0232864424191771,.0345594181969747,.0372237901162006,.0324183761091486,.021233205609381,.0104909907685421,.0032958375797931,.0005070351633801,.0009486742057141,.0062737180998318,.0168646241897775,.028689649025981,.0426748124691731,.0562547481311377,.0694703972677158,.0830531516998291,.0861260963002257,.0904661376847769,.0850038650591277,.0709066691074488,.0506288916373645,.035473961885264,.0214682102597065,.0125164567619117,.0068045816390165,.0034645657946526,.0014976097506959,.000769700480928,.0004073680581315,.0001690104031614,952245150365e-16,490309872958e-16,199961492222e-16],[1844289444e-15,62053235865e-16,310096046799e-16,.0001047483849269,.0003536405299538,.0009514714056444,.0022822631748318,.004207329043473,.0066887983719014,.0098883960193565,.0152494514496311,.0214183109449723,.0334229301575068,.0513100134918512,.070402083939949,.0878387072603517,.0942490536184085,.0979566702718931,.0941521856862608,.0867810237486753,.0788565338632013,.0635267026203555,.05374141675682,.042646064357412,.0316173492792708,.020885205921391,.0138601101360152,.0081026402038399,.004630102258803,.0024913800051319,.0012593033677378,.000541646522168,.0002779528920067,.0001471080673854,610327472927e-16,343873229523e-16,177059860053e-16,7220974913e-15],[.000305017147638,.0010368066663574,.0053131363323992,.0179543925899536,.0570775815345485,.113651618936287,.17335872618355,.196206575558657,.186082370706296,.139950475383207,.0891745294268649,.0478962113517075,.0281456253957952,.0161376622950514,.0077591019215214,.0042961483736618,.0020055092122156,.0008614711098802,.0003690387177652,.0001914287288574,.0001495555858975,923109285104e-16,681349182337e-16,288263655696e-16,157671820553e-16,39406041027e-16,1584012587e-15,0,0,0,0,0,0,0,0,0,0,0]]}),w=Object.freeze({RGB_XYZ:[[.41239079926595934,.357584339383878,.1804807884018343],[.21263900587151027,.715168678767756,.07219231536073371],[.01933081871559182,.11919477979462598,.9505321522496607]],XYZ_RGB:[[3.2409699419045226,-1.537383177570094,-.4986107602930034],[-.9692436362808796,1.8759675015077202,.04155505740717559],[.05563007969699366,-.20397695888897652,1.0569715142428786]],XYZ_LMS:[[.819022437996703,.3619062600528904,-.1288737815209879],[.0329836539323885,.9292868615863434,.0361446663506424],[.0481771893596242,.2642395317527308,.6335478284694309]],LMS_XYZ:[[1.2268798758459243,-.5578149944602171,.2813910456659647],[-.0405757452148008,1.112286803280317,-.0717110580655164],[-.0763729366746601,-.4214933324022432,1.5869240198367816]],LMS_LAB:[[.210454268309314,.7936177747023054,-.0040720430116193],[1.9779985324311684,-2.42859224204858,.450593709617411],[.0259040424655478,.7827717124575296,-.8086757549230774]],LAB_LMS:[[1,.3963377773761749,.2158037573099136],[1,-.1055613458156586,-.0638541728258133],[1,-.0894841775298119,-1.2914855480194092]]});t.Color=e,t.mix=h,t.palette=(t,e,r)=>{let n=new Array(r);for(let a=0;a<r;a++)n[a]=h([t,r-1-a],[e,a]);return n},t.gradient=(t,...e)=>{let r=null,n=null;for(const[a,i]of e)i<=t&&(!r||i>r[1])&&(r=[a,i]),i>=t&&(!n||i<n[1])&&(n=[a,i]);if(!r)return n[0];if(!n)return r[0];if(r[1]===n[1])return r[0];const a=(t-r[1])/(n[1]-r[1]);return h([r[0],1-a],[n[0],a])}}));
+</script>
+<script>
+(function () {
+  'use strict';
+
+  // Paint-box shelves: every shelf is a paint box of ready-made pots — no
+  // picker needed to get started (the original app's core insight).
+  var SHELVES = [
+    { id: 'oils', label: 'Oils', pots: [
+      { name: 'Titanium White',       c: '#F5F3EE' },
+      { name: 'Lemon Yellow',         c: '#F1E04E' },
+      { name: 'Cadmium Yellow',       c: '#F2C500' },
+      { name: 'Cadmium Orange',       c: '#E8731A' },
+      { name: 'Cadmium Red',          c: '#D93A2B' },
+      { name: 'Alizarin Crimson',     c: '#9E2B3B' },
+      { name: 'Quinacridone Magenta', c: '#B93A86' },
+      { name: 'Dioxazine Violet',     c: '#4F3480' },
+      { name: 'Ultramarine Blue',     c: '#1F3A93' },
+      { name: 'Phthalo Blue',         c: '#0C5DA5' },
+      { name: 'Phthalo Green',        c: '#0A6B52' },
+      { name: 'Sap Green',            c: '#59782E' },
+      { name: 'Yellow Ochre',         c: '#C08A2E' },
+      { name: 'Burnt Sienna',         c: '#8C4520' },
+      { name: 'Burnt Umber',          c: '#5A3A28' },
+      { name: 'Ivory Black',          c: '#23211C' }
+    ]},
+    { id: 'earths', label: 'Earths', pots: [
+      { name: 'Chalk White',     c: '#EAE6DA' },
+      { name: 'Lead-Tin Yellow', c: '#E0C468' },
+      { name: 'Yellow Ochre',    c: '#C08A2E' },
+      { name: 'Raw Sienna',      c: '#B57F3C' },
+      { name: 'Red Ochre',       c: '#96422A' },
+      { name: 'Venetian Red',    c: '#AE4A2E' },
+      { name: 'Madder Lake',     c: '#8E3B4A' },
+      { name: 'Burnt Sienna',    c: '#8C4520' },
+      { name: 'Raw Umber',       c: '#705B3B' },
+      { name: 'Burnt Umber',     c: '#5A3A28' },
+      { name: 'Green Earth',     c: '#6B7B5A' },
+      { name: 'Olive Earth',     c: '#6A6239' },
+      { name: 'Lapis Lazuli',    c: '#33518E' },
+      { name: 'Indigo',          c: '#2E4057' },
+      { name: 'Charcoal',        c: '#38352F' },
+      { name: 'Bone Black',      c: '#26221E' }
+    ]},
+    { id: 'crayons', label: 'Crayons', pots: [
+      { name: 'White',         c: '#F4F2EC' },
+      { name: 'Yellow',        c: '#FBE24D' },
+      { name: 'Yellow-Orange', c: '#F9A63C' },
+      { name: 'Orange',        c: '#F58230' },
+      { name: 'Red-Orange',    c: '#ED5B35' },
+      { name: 'Red',           c: '#E23B36' },
+      { name: 'Pink',          c: '#F8A9C4' },
+      { name: 'Red-Violet',    c: '#C0448F' },
+      { name: 'Violet',        c: '#8E4FA8' },
+      { name: 'Blue-Violet',   c: '#6E5BC0' },
+      { name: 'Blue',          c: '#2C6BD9' },
+      { name: 'Blue-Green',    c: '#159FB8' },
+      { name: 'Green',         c: '#2FA457' },
+      { name: 'Yellow-Green',  c: '#9FC54C' },
+      { name: 'Brown',         c: '#A2593B' },
+      { name: 'Black',         c: '#262424' }
+    ]},
+    { id: 'c64', label: 'C64', pots: [
+      { name: 'Black',       c: '#000000' },
+      { name: 'White',       c: '#FFFFFF' },
+      { name: 'Red',         c: '#68372B' },
+      { name: 'Cyan',        c: '#70A4B2' },
+      { name: 'Purple',      c: '#6F3D86' },
+      { name: 'Green',       c: '#588D43' },
+      { name: 'Blue',        c: '#352879' },
+      { name: 'Yellow',      c: '#B8C76F' },
+      { name: 'Orange',      c: '#6F4F25' },
+      { name: 'Brown',       c: '#433900' },
+      { name: 'Light Red',   c: '#9A6759' },
+      { name: 'Dark Gray',   c: '#444444' },
+      { name: 'Gray',        c: '#6C6C6C' },
+      { name: 'Light Green', c: '#9AD284' },
+      { name: 'Light Blue',  c: '#6C5EB5' },
+      { name: 'Light Gray',  c: '#959595' }
+    ]},
+    { id: 'pico8', label: 'PICO-8', pots: [
+      { name: 'Black',       c: '#000000' },
+      { name: 'Dark Blue',   c: '#1D2B53' },
+      { name: 'Dark Purple', c: '#7E2553' },
+      { name: 'Dark Green',  c: '#008751' },
+      { name: 'Brown',       c: '#AB5236' },
+      { name: 'Dark Gray',   c: '#5F574F' },
+      { name: 'Light Gray',  c: '#C2C3C7' },
+      { name: 'White',       c: '#FFF1E8' },
+      { name: 'Red',         c: '#FF004D' },
+      { name: 'Orange',      c: '#FFA300' },
+      { name: 'Yellow',      c: '#FFEC27' },
+      { name: 'Green',       c: '#00E436' },
+      { name: 'Blue',        c: '#29ADFF' },
+      { name: 'Lavender',    c: '#83769C' },
+      { name: 'Pink',        c: '#FF77A8' },
+      { name: 'Peach',       c: '#FFCCAA' }
+    ]},
+    { id: 'web', label: 'Web', pots: [
+      { name: 'Black',   c: '#000000' },
+      { name: 'Silver',  c: '#C0C0C0' },
+      { name: 'Gray',    c: '#808080' },
+      { name: 'White',   c: '#FFFFFF' },
+      { name: 'Maroon',  c: '#800000' },
+      { name: 'Red',     c: '#FF0000' },
+      { name: 'Purple',  c: '#800080' },
+      { name: 'Fuchsia', c: '#FF00FF' },
+      { name: 'Green',   c: '#008000' },
+      { name: 'Lime',    c: '#00FF00' },
+      { name: 'Olive',   c: '#808000' },
+      { name: 'Yellow',  c: '#FFFF00' },
+      { name: 'Navy',    c: '#000080' },
+      { name: 'Blue',    c: '#0000FF' },
+      { name: 'Teal',    c: '#008080' },
+      { name: 'Aqua',    c: '#00FFFF' }
+    ]},
+    { id: 'db16', label: 'DB16', pots: [
+      { name: 'Void',       c: '#140C1C' },
+      { name: 'Plum',       c: '#442434' },
+      { name: 'Navy',       c: '#30346D' },
+      { name: 'Slate',      c: '#4E4A4E' },
+      { name: 'Brown',      c: '#854C30' },
+      { name: 'Forest',     c: '#346524' },
+      { name: 'Scarlet',    c: '#D04648' },
+      { name: 'Ash',        c: '#757161' },
+      { name: 'Cornflower', c: '#597DCE' },
+      { name: 'Amber',      c: '#D27D2C' },
+      { name: 'Steel',      c: '#8595A1' },
+      { name: 'Leaf',       c: '#6DAA2C' },
+      { name: 'Tan',        c: '#D2AA99' },
+      { name: 'Sky',        c: '#6DC2CA' },
+      { name: 'Lemon',      c: '#DAD45E' },
+      { name: 'Cream',      c: '#DEEED6' }
+    ]},
+    { id: 'gameboy', label: 'Game Boy', pots: [
+      { name: 'Darkest Green',  c: '#0F380F' },
+      { name: 'Dark Green',     c: '#306230' },
+      { name: 'Light Green',    c: '#8BAC0F' },
+      { name: 'Lightest Green', c: '#9BBC0F' }
+    ]},
+    { id: 'zorn', label: 'Zorn', pots: [
+      { name: 'Flake White',  c: '#F2EEE3' },
+      { name: 'Yellow Ochre', c: '#C08A2E' },
+      { name: 'Vermilion',    c: '#D8432F' },
+      { name: 'Ivory Black',  c: '#23211C' }
+    ]},
+    { id: 'skin', label: 'Skin', pots: [
+      { name: 'Porcelain',  c: '#F7E3D4' },
+      { name: 'Ivory',      c: '#F2D5BC' },
+      { name: 'Warm Ivory', c: '#EDC5A8' },
+      { name: 'Sand',       c: '#E7B592' },
+      { name: 'Beige',      c: '#DEA57F' },
+      { name: 'Honey',      c: '#D2946C' },
+      { name: 'Amber',      c: '#C6875F' },
+      { name: 'Caramel',    c: '#B97951' },
+      { name: 'Bronze',     c: '#A96A45' },
+      { name: 'Chestnut',   c: '#9A5B3A' },
+      { name: 'Sienna',     c: '#8B4F31' },
+      { name: 'Cocoa',      c: '#7A452B' },
+      { name: 'Mahogany',   c: '#693A24' },
+      { name: 'Espresso',   c: '#57301E' },
+      { name: 'Truffle',    c: '#452619' },
+      { name: 'Onyx',       c: '#331D14' }
+    ]},
+    { id: 'ral', label: 'RAL', pots: [
+      { name: 'Cream 9001',          c: '#FDF4E3' },
+      { name: 'Light Ivory 1015',    c: '#EAE6CA' },
+      { name: 'Signal Yellow 1003',  c: '#F7BA0B' },
+      { name: 'Pure Orange 2004',    c: '#E75B12' },
+      { name: 'Traffic Red 3020',    c: '#C1121C' },
+      { name: 'Ruby Red 3003',       c: '#9B111E' },
+      { name: 'Signal Violet 4008',  c: '#924E7D' },
+      { name: 'Gentian Blue 5010',   c: '#0E294B' },
+      { name: 'Sky Blue 5015',       c: '#2271B3' },
+      { name: 'Turquoise Blue 5018', c: '#3F888F' },
+      { name: 'Emerald Green 6001',  c: '#287233' },
+      { name: 'May Green 6017',      c: '#4C9141' },
+      { name: 'Ochre Yellow 1024',   c: '#BA8F4C' },
+      { name: 'Nut Brown 8011',      c: '#5B3A29' },
+      { name: 'Silver Grey 7001',    c: '#8A9597' },
+      { name: 'Jet Black 9005',      c: '#0A0A0A' }
+    ]}
+  ];
+  var activeShelf = 'oils';
+  function shelfById(id) {
+    return SHELVES.filter(function (s) { return s.id === id; })[0];
+  }
+  function potName(hex) {
+    hex = hex.toUpperCase();
+    for (var s = 0; s < SHELVES.length; s++)
+      for (var i = 0; i < SHELVES[s].pots.length; i++)
+        if (SHELVES[s].pots[i].c === hex) return SHELVES[s].pots[i].name;
+    return 'Custom';
+  }
+
+  var buckets = [
+    { c: '#F2C500', w: 3 },
+    { c: '#1F3A93', w: 1 }
+  ];
+  var mode = 'pigment';
+  var palette = [];
+
+  // ---------- Color math ----------
+  function hex2rgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+  function rgb2hex(r) { return '#' + r.map(function (v) { return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0'); }).join('').toUpperCase(); }
+  function s2l(v) { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+  function luma(h) { var r = hex2rgb(h); return 0.2126 * s2l(r[0]) + 0.7152 * s2l(r[1]) + 0.0722 * s2l(r[2]); }
+
+  // Pigment mixing: spectral.js (inlined above) — spectral Kubelka-Munk over
+  // 38 wavelength bands. Color objects are memoized per hex (the fast path
+  // we measured: ~467k mixes/s), and parts pass as sqrt(w): spectral.js
+  // squares factors internally, so this keeps "3 parts" meaning 3 parts.
+  var colorCache = {};
+  function spectralColor(hex) {
+    hex = hex.toUpperCase();
+    return colorCache[hex] || (colorCache[hex] = new spectral.Color(hex));
+  }
+  function mixPigment(bs) {
+    var pairs = bs.map(function (b) { return [spectralColor(b.c), Math.sqrt(b.w)]; });
+    return spectral.mix.apply(null, pairs).toString().toUpperCase();
+  }
+  function mixRGB(bs) {
+    var tw = bs.reduce(function (a, b) { return a + b.w; }, 0) || 1;
+    var out = [0, 0, 0];
+    bs.forEach(function (b) {
+      var rgb = hex2rgb(b.c);
+      for (var ch = 0; ch < 3; ch++) out[ch] += rgb[ch] * (b.w / tw);
+    });
+    return rgb2hex(out);
+  }
+
+  // ---------- DOM ----------
+  var $ = function (s) { return document.querySelector(s); };
+  var elBuckets = $('#buckets'), elHex = $('#hex'), elResult = $('#result');
+  var potEls = [], rowEls = [], tabEls = [];
+
+  function parseHex(t) {
+    t = String(t).trim().replace(/^#/, '');
+    if (/^[0-9a-fA-F]{3}$/.test(t)) t = t.replace(/[0-9a-fA-F]/g, function (c) { return c + c; });
+    return /^[0-9a-fA-F]{6}$/.test(t) ? '#' + t.toUpperCase() : null;
+  }
+  function findBucket(hex) {
+    hex = hex.toUpperCase();
+    return buckets.filter(function (x) { return x.c.toUpperCase() === hex; })[0];
+  }
+
+  // Structural builds run only when buckets are added or removed — NEVER
+  // on a value change. Rebuilding a row destroys its <input type="color">,
+  // and the browser instantly closes the native picker attached to it.
+  function buildTabs() {
+    var box = $('#shelfTabs');
+    box.innerHTML = '';
+    tabEls = SHELVES.map(function (s) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'disp';
+      b.textContent = s.label;
+      b.setAttribute('aria-pressed', String(s.id === activeShelf));
+      b.addEventListener('click', function () {
+        activeShelf = s.id;
+        tabEls.forEach(function (t, j) { t.setAttribute('aria-pressed', String(SHELVES[j].id === activeShelf)); });
+        buildPots();
+        refresh();
+      });
+      box.appendChild(b);
+      return b;
+    });
+  }
+
+  function buildPots() {
+    var box = $('#pots');
+    box.innerHTML = '';
+    potEls = shelfById(activeShelf).pots.map(function (p) {
+      var b = document.createElement('button');
+      b.className = 'pot'; b.type = 'button';
+      b.style.background = p.c;
+      b.title = p.name;
+      b.setAttribute('aria-label', p.name + ' — add a dab');
+      b.addEventListener('click', function () {
+        var hit = findBucket(p.c);
+        if (hit) { if (hit.w < 99) { hit.w++; refresh(); } }
+        else { buckets.push({ c: p.c, w: 1 }); buildBuckets(); refresh(); }
+      });
+      box.appendChild(b);
+      return { el: b, hex: p.c };
+    });
+  }
+
+  function buildBuckets() {
+    elBuckets.innerHTML = '';
+    rowEls = buckets.map(function (b, i) {
+      var row = document.createElement('div');
+      row.className = 'bucket';
+
+      var chip = document.createElement('span');
+      chip.className = 'chip';
+      var color = document.createElement('input');
+      color.type = 'color'; color.value = b.c;
+      color.setAttribute('aria-label', 'Pick color ' + (i + 1));
+      chip.appendChild(color);
+
+      var name = document.createElement('span');
+      name.className = 'b-name';
+      var nm = document.createElement('span');
+      var hexIn = document.createElement('input');
+      hexIn.className = 'hex-in mono';
+      hexIn.type = 'text';
+      hexIn.value = b.c.toUpperCase();
+      hexIn.spellcheck = false;
+      hexIn.autocomplete = 'off';
+      hexIn.maxLength = 7;
+      hexIn.setAttribute('aria-label', 'Hex value for color ' + (i + 1));
+      name.appendChild(nm);
+      name.appendChild(hexIn);
+
+      var parts = document.createElement('span');
+      parts.className = 'parts';
+      var minus = document.createElement('button');
+      minus.type = 'button'; minus.innerHTML = '&minus;';
+      minus.setAttribute('aria-label', 'Fewer parts');
+      var n = document.createElement('span');
+      n.className = 'n';
+      var plus = document.createElement('button');
+      plus.type = 'button'; plus.textContent = '+';
+      plus.setAttribute('aria-label', 'More parts');
+      parts.appendChild(minus); parts.appendChild(n); parts.appendChild(plus);
+
+      var del = document.createElement('button');
+      del.className = 'b-del'; del.type = 'button'; del.innerHTML = '&times;';
+      del.setAttribute('aria-label', 'Remove color');
+
+      color.addEventListener('input', function (e) { b.c = e.target.value.toUpperCase(); refresh(); });
+      hexIn.addEventListener('input', function () {
+        var v = parseHex(hexIn.value);
+        if (v) { b.c = v; refresh(); }
+      });
+      hexIn.addEventListener('change', function () { hexIn.value = b.c.toUpperCase(); });
+      hexIn.addEventListener('keydown', function (e) { if (e.key === 'Enter') hexIn.blur(); });
+      minus.addEventListener('click', function () { if (b.w > 1) { b.w--; refresh(); } });
+      plus.addEventListener('click', function () { if (b.w < 99) { b.w++; refresh(); } });
+      del.addEventListener('click', function () {
+        if (buckets.length > 1) { buckets.splice(buckets.indexOf(b), 1); buildBuckets(); refresh(); }
+      });
+
+      row.appendChild(chip); row.appendChild(name); row.appendChild(parts); row.appendChild(del);
+      elBuckets.appendChild(row);
+      return { chip: chip, color: color, nm: nm, hexIn: hexIn, n: n };
+    });
+  }
+
+  function renderPalette() {
+    var box = $('#swatches');
+    box.innerHTML = '';
+    if (!palette.length) { box.innerHTML = '<span class="pal-empty">Nothing here yet &mdash; mix something and save it.</span>'; }
+    palette.forEach(function (h) {
+      var b = document.createElement('button');
+      b.className = 'sw'; b.style.background = h; b.title = 'Copy ' + h;
+      b.setAttribute('aria-label', 'Copy ' + h);
+      b.addEventListener('click', function () { copy(h); });
+      box.appendChild(b);
+    });
+    $('#copyPal').hidden = !palette.length;
+  }
+
+  // In-place refresh: updates values without touching DOM structure, so an
+  // open color picker or a hex field being typed in survives every change.
+  function refresh() {
+    potEls.forEach(function (p) {
+      var hit = findBucket(p.hex);
+      if (hit) p.el.setAttribute('data-n', hit.w);
+      else p.el.removeAttribute('data-n');
+    });
+    buckets.forEach(function (b, i) {
+      var r = rowEls[i];
+      r.chip.style.background = b.c;
+      if (r.color.value.toUpperCase() !== b.c.toUpperCase()) r.color.value = b.c;
+      r.nm.textContent = potName(b.c);
+      if (document.activeElement !== r.hexIn) r.hexIn.value = b.c.toUpperCase();
+      r.n.textContent = b.w + ' ' + (b.w === 1 ? 'part' : 'parts');
+    });
+    var main = mode === 'pigment' ? mixPigment(buckets) : mixRGB(buckets);
+    var other = mode === 'pigment' ? mixRGB(buckets) : mixPigment(buckets);
+    elResult.style.background = main;
+    var fg = luma(main) > 0.35 ? '#181711' : '#F4F2EC';
+    elResult.style.color = fg;
+    elHex.textContent = main;
+    $('#cmpChip').style.background = other;
+    $('#cmpText').textContent = (mode === 'pigment' ? 'What RGB would give you: ' : 'What pigment would give you: ') + other;
+    location.replace('#' + buckets.map(function (b) { return b.c.slice(1) + 'x' + b.w; }).join(',') + ';' + mode + ';' + activeShelf);
+  }
+
+  function copy(text) {
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(showToast, function () {
+      var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t);
+      t.select(); document.execCommand('copy'); t.remove(); showToast();
+    });
+  }
+  var toastT;
+  function showToast() { var t = $('#toast'); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 1400); }
+
+  // ---------- Events ----------
+  $('#add').addEventListener('click', function () { buckets.push({ c: '#D0342C', w: 1 }); buildBuckets(); refresh(); });
+  $('#copyHex').addEventListener('click', function () { copy(elHex.textContent); });
+  $('#toPal').addEventListener('click', function () {
+    var h = elHex.textContent;
+    if (palette.indexOf(h) === -1) { palette.push(h); renderPalette(); }
+  });
+  $('#copyPal').addEventListener('click', function () { copy(palette.join(', ')); });
+  function setMode(m) {
+    mode = m;
+    $('#mPig').setAttribute('aria-pressed', String(m === 'pigment'));
+    $('#mRgb').setAttribute('aria-pressed', String(m === 'rgb'));
+    $('#modeNote').textContent = m === 'pigment'
+      ? 'Pigment mixes subtractively — spectral Kubelka-Munk over 38 wavelength bands: yellow + blue makes green, like on a palette, not in a color space.'
+      : 'RGB averages the channel values — fast, but mixes often turn gray and muddy.';
+    refresh();
+  }
+  $('#mPig').addEventListener('click', function () { setMode('pigment'); });
+  $('#mRgb').addEventListener('click', function () { setMode('rgb'); });
+
+  // Restore a shared recipe from the URL
+  if (location.hash.length > 1) {
+    try {
+      var parts = location.hash.slice(1).split(';');
+      var bs = parts[0].split(',').map(function (t) {
+        var m = t.match(/^([0-9A-Fa-f]{6})x(\d+)$/);
+        return m ? { c: '#' + m[1].toUpperCase(), w: Math.min(99, Math.max(1, parseInt(m[2], 10))) } : null;
+      });
+      if (bs.every(Boolean) && bs.length) { buckets = bs; }
+      if (parts[1] === 'rgb') { mode = 'rgb'; $('#mPig').setAttribute('aria-pressed', 'false'); $('#mRgb').setAttribute('aria-pressed', 'true'); }
+      if (parts[2] && shelfById(parts[2])) { activeShelf = parts[2]; }
+    } catch (e) { /* ignore malformed hash */ }
+  }
+
+  buildTabs();
+  buildPots();
+  buildBuckets();
+  renderPalette();
+  refresh();
+})();
+</script>

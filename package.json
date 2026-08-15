@@ -1,0 +1,14 @@
+{
+  "name": "color-bucket",
+  "version": "0.0.1",
+  "description": "Mix colors like paint, not like numbers — palette community + embeddable mixing picker",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/",
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "spectral.js": "^3.0.0"
+  }
+}

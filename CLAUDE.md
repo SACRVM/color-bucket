@@ -30,6 +30,13 @@ Conversation with the owner is **German**; everything in this repo
   **Always run after editing app.html.**
 - `node eval/spectral-eval.js` — the one-shot protocol that justified the
   spectral.js adoption (kept for reruns after dependency updates).
+- `node eval/mixing-proof.js` — does the engine actually beat a colour picker?
+  Rerun after any engine or shelf change; the README records the findings.
+- `git config core.hooksPath .githooks` — **run once per clone.** Enables the
+  pre-commit guard that keeps personal names out of credits and comments.
+  `core.hooksPath` is local config and is not versioned, so a fresh clone has
+  the hook file but not the setting, and the guard is silently inactive until
+  this is run.
 
 ## Hard rules
 

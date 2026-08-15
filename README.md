@@ -8,6 +8,10 @@ around a mixing model that behaves like real paint — you combine **paint pots
 in parts** ("3 parts cadmium yellow, 1 part ultramarine") instead of fiddling
 with pickers and sliders.
 
+> The authorship credit above is factual provenance for a real, released 2013
+> product — deliberately left as written, not an incidental credit to clean up.
+> A name search should match here; see *Origin* at the end for the same case.
+
 **Live prototype:** https://claude.ai/code/artifact/7382658d-e331-43e8-8299-287651751f21
 
 ## Why this works
@@ -234,3 +238,9 @@ the browser reproduces the eval protocol's predicted values exactly
 Discovered while backing up the old 1&1/IONOS webspace: the 2013 landing page
 lives on in `\\nas\backup\Webspace\colorbucketapp`. The footer quote in the
 prototype is from its testimonials — written back then by Chloe.
+
+> As in the intro: this section records who made a real, released product in
+> 2013. It is factual provenance and stays as written. Re-crediting it to the
+> current identity would make it false, removing it would make it incomplete.
+> The prototype's own footer carries no personal name and needs none — the
+> quote there is attributed to "a user", which is what it was.

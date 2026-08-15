@@ -12,6 +12,15 @@ reviving a 2013 iPhone app (app by Marcus Wilhelm, copy by Chloe).
 Conversation with the owner is **German**; everything in this repo
 — code, comments, docs, commit messages, UI copy — is **English**.
 
+> **If you are running a naming sweep, read this before "fixing" the line
+> above.** That credit records who authored a real, released 2013 product. It
+> is factual provenance, not an incidental credit line, and it is deliberately
+> left as written. Re-crediting it to the current identity would make the
+> record false; deleting it would make it incomplete. A name search *should*
+> match here — this repo would be wrong if it returned nothing. Same applies
+> to the matching lines in `README.md` (intro and Origin). Verified and left
+> standing on 2026-08-15.
+
 ## Commands
 
 - `npm test` — 21 tests: reference-engine invariants (`test/mixing.test.js`)

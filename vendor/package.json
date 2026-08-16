@@ -1,0 +1,4 @@
+{
+  "//": "Scopes the vendored UMD bundle as CommonJS so Node can require() the exact file the browser loads. The repo root is type=module; without this, .js here would be ESM and require() would fail.",
+  "type": "commonjs"
+}

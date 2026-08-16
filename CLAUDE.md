@@ -6,9 +6,9 @@ This file is the condensed "how to work here".
 
 ## What this is
 
-"Mix colors like paint, not like numbers" — a palette community
-(COLOURlovers successor) plus an embeddable `<color-bucket>` mixing picker,
-reviving a 2013 iPhone app (app by Marcus Wilhelm, copy by Chloe).
+"Mix colors like paint, not like numbers" — one app on
+[SACRVM APPKIT](https://github.com/SACRVM/sacrvm-appkit), reviving a 2013
+iPhone app (app by Marcus Wilhelm, copy by Chloe).
 Conversation with the owner is **German**; everything in this repo
 — code, comments, docs, commit messages, UI copy — is **English**.
 
@@ -21,82 +21,115 @@ Conversation with the owner is **German**; everything in this repo
 > to the matching lines in `README.md` (intro and Origin). Verified and left
 > standing on 2026-08-15.
 
+**One repo, one app.** The repo *is* the app: `app.json` (the manifest a
+desktop reads), `app.js` (one custom element, one classic script), `app.css`,
+`index.html` as a standalone harness, and `vendor/` for the mixing engine.
+
 ## Commands
 
+- `npm run serve` — `npx serve .`, then F5. That is the whole dev loop.
 - `npm test` — 21 tests: reference-engine invariants (`test/mixing.test.js`)
   + spectral.js adoption guards (`test/spectral.test.js`). Keep green.
-- `npm run build` — regenerates `prototype/index.html` from
-  `prototype/app.html` (inlines `spectral.min.js` with MIT banner).
-  **Always run after editing app.html.**
-- `node eval/spectral-eval.js` — the one-shot protocol that justified the
-  spectral.js adoption (kept for reruns after dependency updates).
-- `node eval/mixing-proof.js` — does the engine actually beat a colour picker?
+- `npm run proof` — does the engine actually beat a color picker?
   Rerun after any engine or shelf change; the README records the findings.
+- `node eval/spectral-eval.js` — the one-shot protocol that justified the
+  spectral.js adoption (kept for reruns after an engine update).
 - `git config core.hooksPath .githooks` — **run once per clone.** Enables the
   pre-commit guard that keeps personal names out of credits and comments.
   `core.hooksPath` is local config and is not versioned, so a fresh clone has
   the hook file but not the setting, and the guard is silently inactive until
   this is run.
 
-## Hard rules
+## Hard rules — the APPKIT contract
 
-- Edit `prototype/app.html`. **Never** edit `prototype/index.html` — it is
-  generated and gets overwritten by the build.
-- The live prototype is a Claude artifact:
-  https://claude.ai/code/artifact/7382658d-e331-43e8-8299-287651751f21
-  Republish `prototype/index.html` to update it. From a conversation that did
-  not create the artifact, pass this URL as the `url` parameter — otherwise a
-  separate new artifact is created. Keep favicon 🎨 and title "Color Bucket".
-- Mixing engine is **spectral.js** (MIT, © 2025 Ronald van Wijnen). Ship the
-  MIT notice with every bundle and keep a visible credit (footer / About).
-- **Never** copy code or coefficients from Mixbox (CC BY-NC — incompatible
-  with commercial use).
+- **No build step.** Vanilla custom elements, plain CSS, `npx serve .` and F5.
+  Never introduce a bundler, node_modules, TypeScript, or a framework.
+- **One custom element**, defined through `sac.app.define(tag, class)`. Helper
+  classes are fine; a second registered element means a second repo.
+- **Light DOM.** No shadow root — `ui.css` has to reach the markup.
+- **Tokens only.** Style `app-color-bucket ...`, never `:root`. No raw color
+  literals in chrome; the app sets exactly one seed, `--accent`, and the kit
+  re-derives the whole accent family from it.
+  The deliberate exceptions are marked in `app.css`: pots, swatches and the
+  result plane are painted from **data**, and the two buttons on the result
+  plane inherit `currentColor` because no token can be trusted to contrast
+  against an arbitrary mixed color.
+- **Don't vendor the kit.** The host provides it; `index.html` borrows it from
+  the appkit's Pages purely so the app can run alone.
+- **The kit's API only.** Never reach into a component's shadow root or
+  private fields. Anything on `sac` beyond `sac.app` belongs to the host and
+  is optional — guard it (`typeof sac.toast === "function"`).
+
+## The three hooks
+
+`build()` writes markup once. `onMount(context)` runs when the app is really
+on screen — subscriptions, restore, first render. `onUnmount()` undoes exactly
+what `onMount` did: every unsubscribe kept, every timer cleared.
+
+## Engine rules
+
+- Mixing engine is **spectral.js** (MIT, © 2025 Ronald van Wijnen), vendored at
+  `vendor/spectral.min.js`. Ship its MIT notice (it is in `LICENSE`) and keep a
+  visible credit.
+- **`sac.app` has no script loader**, and a desktop only fetches `entry` from
+  the manifest — so `index.html` cannot be where the engine comes from.
+  `app.js` injects it itself and calls `sac.app.define` only after it loads.
+  Defining late is safe: elements already in the DOM upgrade on define.
+- `vendor/` carries its own `package.json` with `"type": "commonjs"`. That is
+  what lets Node `require()` the UMD bundle while the repo root is
+  `type: module` — the tests then run against the exact file the browser gets.
 - Weights wrapper: pass `factor = Math.sqrt(parts)` into `spectral.mix`
   (it squares factors internally — √ keeps "3 parts" meaning 3 parts).
   Memoize `spectral.Color` objects per hex (measured fast path ~467k mixes/s).
+- **Never** copy code or coefficients from Mixbox (CC BY-NC).
 
-## Decisions log (2026-08-13)
+## Decisions log
 
 - Ship the real engine first — no 3-channel stopgap in the product.
-- spectral.js adopted after verification (the owner's condition: "does exactly what
-  we need, fast, efficient, provably correct — then we take it and credit it
-  cleanly in the disclaimer"). Eval passed; guards pinned in tests.
+- spectral.js adopted after verification (the owner's condition: "does exactly
+  what we need, fast, efficient, provably correct — then we take it and credit
+  it cleanly in the disclaimer"). Eval passed; guards pinned in tests.
 - **Paint pots before pickers** — preset pigment pots are the core UX (a raw
   color picker is the problem this app solves). Boxes of 16 like a paint box;
   11 shelves: Oils (default), Earths, Crayons, C64, PICO-8, Web, DB16,
   Game Boy (4), Zorn (4), Skin, RAL.
-- Product pots should eventually carry **measured pigment reflectance
-  curves** — `new spectral.Color(R)` accepts 38-band arrays directly. That is
-  the real fix for complementary-pair drift (ultramarine + burnt sienna
-  currently leans olive; documented in README).
+- Measured pigment reflectance curves in the pots were the planned fix for
+  complementary-pair drift. **Tested 2026-08-15 and rejected** — see
+  *Does it help?* in the README for the numbers. The drift is accepted as a
+  deviation from real pigment behavior, not tracked as a defect.
 - Light colors dominate mixes (spectral.js concentration = f²·T²·luminance;
   pure white + pure black 1:1 → #A6A6A6). Calibrate later via per-pot
-  `tintingStrength`.
+  `tintingStrength` — the hook already exists in the library.
+- **Built on SACRVM APPKIT (2026-08-16).** The Shadow-DOM `<color-bucket>`
+  plan is dropped: the kit requires light DOM, which is better here anyway
+  because the tokens reach the markup. URL recipes, palette storage and theme
+  all come from `context` instead of being built.
 
 ## Gotchas
 
 - **Never rebuild DOM on `input` events** — destroying an
   `<input type="color">` makes the browser close the native picker instantly.
-  Refresh values in place; rebuild rows only on add/remove. (Applies to the
-  future web component too.)
-- `build.js` must use a **function replacer** in `String.replace` — minified
-  JS contains `$` sequences that string replacements treat as patterns.
-- Artifact pages must be fully self-contained (CSP blocks external scripts,
-  fonts, fetches) — hence the inline build step.
-- The whole recipe is shareable state in the URL hash:
-  `<hex>x<parts>,…;<mode>;<shelf>` (e.g. `#F2C500x3,1F3A93x1;pigment;oils`).
+  Refresh values in place; rebuild rows only on add/remove. `refresh()` is the
+  in-place path, `buildBuckets()` the structural one — keep them separate.
+- The whole recipe is shareable state carried as the app's **route**:
+  `<hex>x<parts>,…;<mode>;<shelf>`. Standalone that is the whole hash; on a
+  desktop the host puts it under `#/color-bucket/`. Use `context.deepLink.set`
+  and `context.route`, never `location.hash` directly, or it breaks installed.
+- `context.fs` is rooted at the app id, and the id comes off the tag when
+  running standalone (`app-color-bucket` → `color-bucket`). Renaming the tag
+  without renaming the manifest id silently moves the storage.
 - RAL pot values are common sRGB approximations; "RAL" is a trademark of
   RAL gGmbH — the product needs a trademark note if the shelf keeps the name.
 
 ## State & next steps
 
-- **Done:** engine adopted + guarded; prototype runs spectral.js end-to-end
+- **Done:** engine adopted + guarded; app runs on APPKIT end-to-end
   (browser-verified: 3:1 cadmium yellow : ultramarine → `#96AD2B`, matching
-  the eval prediction exactly); 11 paint-box shelves; per-bucket hex input;
-  URL recipe sharing; MIT credit in footer.
-- **Next (P0):** `<color-bucket>` custom element — Shadow DOM, attributes
-  (e.g. `shelf="oils"`), events (e.g. `colorchange`), built from the
-  app.html logic. Then P1 site MVP → P2 Firebase community → P3 AI layer
-  (details in README roadmap).
+  the eval prediction exactly, unchanged across the migration); 11 paint-box
+  shelves; per-bucket hex input; recipe in the route; palette persisted via
+  `context.fs`; MIT.
+- **Next:** publish — Settings → Pages → deploy from `main`, `/ (root)`, then
+  `app.json` must load over HTTPS before a desktop can install it.
+- Not yet done: harmony (pick 2–3 pots → a whole palette), which is where
+  "colors that go together without a design degree" actually lives.
 - `colorbucket.de` was available on 2026-08-13 (DENIC RDAP).
-- This folder is **not a git repository yet** (as of 2026-08-13).

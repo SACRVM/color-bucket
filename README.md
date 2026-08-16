@@ -12,7 +12,9 @@ with pickers and sliders.
 > product — deliberately left as written, not an incidental credit to clean up.
 > A name search should match here; see *Origin* at the end for the same case.
 
-**Live prototype:** https://claude.ai/code/artifact/7382658d-e331-43e8-8299-287651751f21
+Built on **[SACRVM APPKIT](https://github.com/SACRVM/sacrvm-appkit)** — one repo,
+one app. Run it with `npx serve .`, or install it on a desktop by pasting this
+repository's URL into the install tile.
 
 ## Why this works
 
@@ -170,15 +172,21 @@ oil, measured over black *and* white grounds, **CC0**) is the dataset to use.
 | `test/spectral.test.js` | Adoption guards for spectral.js — `npm test` runs both (Node ≥ 18) |
 | `eval/spectral-eval.js` | One-shot evaluation protocol that led to the spectral.js adoption |
 | `eval/mixing-proof.js` | Does the engine beat a color picker? Repeatable — rerun after engine or shelf changes |
-| `prototype/app.html` | Prototype **source** — edit this |
-| `build.js` | `npm run build`: inlines `spectral.min.js` (with MIT banner) into the source |
-| `prototype/index.html` | **Generated**, self-contained prototype — the published artifact (its CSP forbids external scripts); do not edit directly |
+| `app.json` | The manifest a desktop reads before running anything |
+| `app.js` | The app: one custom element, one classic script |
+| `app.css` | App styles — kit tokens only, one `--accent` seed |
+| `index.html` | Standalone harness: the app alone, no desktop, F5 to develop |
+| `vendor/spectral.min.js` | The mixing engine, vendored. `vendor/package.json` scopes it as CommonJS so Node tests load the exact file the browser gets |
 
-The prototype runs the real spectral engine: `spectral.mix` with memoized
-`Color` objects per pot and `factor = √parts` (spectral.js squares factors
-internally, so this keeps "3 parts" meaning 3 parts). Verified end-to-end:
-the browser reproduces the eval protocol's predicted values exactly
-(3:1 cadmium yellow : ultramarine → `#96AD2B`).
+**No build step.** `npx serve .` and F5 is the whole dev loop; every push to
+`main` is immediately live on Pages, and a desktop installs the app by reading
+`app.json` from that origin.
+
+The app runs the real spectral engine: `spectral.mix` with memoized `Color`
+objects per pot and `factor = √parts` (spectral.js squares factors internally,
+so this keeps "3 parts" meaning 3 parts). Verified in the browser, before and
+after the move onto the kit, with the same result the eval protocol predicts:
+3:1 cadmium yellow : ultramarine → `#96AD2B`.
 
 ## Credits & licenses
 
@@ -198,7 +206,16 @@ the browser reproduces the eval protocol's predicted values exactly
 
 ## Roadmap
 
-- **P0** — the *real* mixing engine + `<color-bucket>` custom element (no backend) ← *we are here*
+- **P0 — done.** The real mixing engine, and the app itself as one custom
+  element on SACRVM APPKIT.
+  - **Built on the kit (2026-08-16).** The original plan was a Shadow-DOM
+    `<color-bucket>` element. The kit requires **light DOM** instead, so its
+    stylesheet reaches the markup — better here, because the app then inherits
+    the whole token system and rethemes from one `--accent` seed.
+  - Three roadmap items turned out to be kit features rather than work:
+    URL recipes are `context.deepLink` / `context.route`, palette storage is
+    `context.fs` (rooted at the app id, so a palette saved standalone survives
+    being installed), and theming is `context.theme`.
   - **Engine decision (2026-08-13): the proper engine ships first — no
     3-channel stopgap in the product.** Target: spectral Kubelka-Munk on
     38 wavelength bands with reflectance reconstruction from sRGB.
@@ -226,7 +243,9 @@ the browser reproduces the eval protocol's predicted values exactly
       from real pigment behavior rather than tracked as a defect. See
       *Does it help?* above for the numbers.
     The per-channel engine in `src/mixing.js` stays as the reference/fallback
-    implementation and as the prototype's inline engine.
+    implementation: it is what `test/mixing.test.js` verifies the Kubelka-Munk
+    invariants against. The app itself mixes with spectral.js and does not
+    import it.
 - **P1** — site MVP: mix, share palettes by URL, no login
 - **P2** — community: Google sign-in, save/like/search palettes (Firebase: Auth + Firestore + Hosting)
 - **P3** — AI-friendly layer: JSON API, llms.txt/MCP, "describe a mood → recipe"
@@ -242,5 +261,5 @@ prototype is from its testimonials — written back then by Chloe.
 > As in the intro: this section records who made a real, released product in
 > 2013. It is factual provenance and stays as written. Re-crediting it to the
 > current identity would make it false, removing it would make it incomplete.
-> The prototype's own footer carries no personal name and needs none — the
+> The app's own UI carries no personal name and needs none — the
 > quote there is attributed to "a user", which is what it was.

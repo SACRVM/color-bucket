@@ -6,7 +6,12 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import spectral from 'spectral.js';
+// Loads the file that actually SHIPS, not a parallel copy from npm: the app
+// vendors spectral.min.js (no build step, no node_modules), and createRequire
+// pulls that same UMD bundle in as CommonJS. A guard that tests a different
+// copy than the browser runs is not a guard.
+import { createRequire } from 'node:module';
+const spectral = createRequire(import.meta.url)('../vendor/spectral.min.js');
 import { hexToRgb } from '../src/mixing.js';
 
 const C = (h) => new spectral.Color(h);

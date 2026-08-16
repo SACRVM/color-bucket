@@ -1,0 +1,407 @@
+/**
+ * <app-color-bucket> styles.
+ *
+ * Tokens only. Every colour here comes from the kit; the app never touches
+ * :root and never writes a literal. The ONE exception is deliberate and
+ * marked: the pots, swatches and the result plane are painted from data —
+ * those are the content, not the chrome.
+ */
+
+app-color-bucket {
+    /* The app's identity, and the only seed it sets. .sac-app is on this
+       element, so ui.css re-derives the whole accent family from this one
+       line — fills, hovers, tints and text variants included. Change this
+       and the app rethemes; change nothing else. Ultramarine, because it is
+       the pigment half of what this app is for. */
+    --accent: #3d5ccc;
+
+    display: block;
+    height: 100%;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+app-color-bucket .cb-stage {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    height: 100%;
+    min-height: 0;
+}
+
+/* ---------------------------------------------------------------- recipe -- */
+app-color-bucket .cb-recipe {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 20px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    min-height: 0;
+}
+
+app-color-bucket .cb-label {
+    margin: 0 0 8px;
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+app-color-bucket .cb-hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* shelf tabs */
+app-color-bucket .cb-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    margin-bottom: 10px;
+}
+
+app-color-bucket .cb-tabs button {
+    padding: 2px 0;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--text-dim);
+    font: inherit;
+    font-size: 11.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+app-color-bucket .cb-tabs button:hover { color: var(--text); }
+
+app-color-bucket .cb-tabs button[aria-pressed="true"] {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+}
+
+/* pots */
+app-color-bucket .cb-pots {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+}
+
+app-color-bucket .cb-pots-few { grid-template-columns: repeat(4, 1fr); }
+
+app-color-bucket .cb-pot {
+    position: relative;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform .12s ease;
+    /* background is painted from the pot's own value — content, not chrome */
+}
+
+app-color-bucket .cb-pot:hover { transform: translateY(-2px); }
+
+app-color-bucket .cb-pot[data-n]::after {
+    content: attr(data-n);
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 8px;
+    background: var(--accent-fill);
+    color: var(--on-accent);
+    font-size: 10px;
+    line-height: 16px;
+    font-weight: 700;
+}
+
+/* buckets */
+app-color-bucket .cb-buckets {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+app-color-bucket .cb-bucket {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel);
+}
+
+app-color-bucket .cb-chip {
+    position: relative;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+}
+
+app-color-bucket .cb-chip input {
+    position: absolute;
+    inset: -8px;
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    border: 0;
+    cursor: pointer;
+}
+
+app-color-bucket .cb-bname {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+}
+
+app-color-bucket .cb-hex-in {
+    display: block;
+    width: 92px;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px dashed transparent;
+    border-radius: 0;
+    background: none;
+    color: var(--text-muted);
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+app-color-bucket .cb-hex-in:hover { border-bottom-color: var(--border-strong); }
+app-color-bucket .cb-hex-in:focus { color: var(--text); border-bottom-color: var(--accent); outline: none; }
+
+app-color-bucket .cb-parts {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+app-color-bucket .cb-parts button {
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+app-color-bucket .cb-parts button:hover { background: color-mix(in srgb, var(--fg) 8%, transparent); }
+
+app-color-bucket .cb-n {
+    min-width: 56px;
+    text-align: center;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+app-color-bucket .cb-del {
+    padding: 4px 6px;
+    border: 0;
+    background: none;
+    color: var(--text-dim);
+    font: inherit;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+app-color-bucket .cb-del:hover { color: var(--danger-text); }
+
+app-color-bucket .cb-add {
+    width: 100%;
+    margin-top: 8px;
+    padding: 9px;
+    border: 1px dashed var(--border-strong);
+    border-radius: 6px;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+}
+
+app-color-bucket .cb-add:hover { color: var(--text); border-color: var(--accent); }
+
+/* mode switch */
+app-color-bucket .cb-modes {
+    display: inline-flex;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+app-color-bucket .cb-modes button {
+    padding: 7px 16px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    letter-spacing: .04em;
+    cursor: pointer;
+}
+
+app-color-bucket .cb-modes button[aria-pressed="true"] {
+    background: var(--accent-fill);
+    color: var(--on-accent);
+}
+
+app-color-bucket .cb-note {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* palette */
+app-color-bucket .cb-palette { margin-top: auto; }
+
+app-color-bucket .cb-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 44px;
+}
+
+app-color-bucket .cb-sw {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform .12s ease;
+    /* background painted from the saved colour — content */
+}
+
+app-color-bucket .cb-sw:hover { transform: translateY(-2px); }
+
+app-color-bucket .cb-pal-empty {
+    color: var(--text-dim);
+    font-size: 12.5px;
+}
+
+app-color-bucket .cb-copy-pal { margin-top: 10px; }
+
+/* ---------------------------------------------------------------- result -- */
+app-color-bucket .cb-result {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px 24px;
+    transition: background .25s ease;
+    /* background and colour are set from the mix itself — that IS the output */
+}
+
+app-color-bucket .cb-hex {
+    margin: 0;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: clamp(40px, 8vw, 96px);
+    font-weight: 700;
+    letter-spacing: .01em;
+    user-select: all;
+}
+
+app-color-bucket .cb-result-name {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    opacity: .75;
+}
+
+app-color-bucket .cb-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+/* The result plane is an arbitrary mixed colour, so the kit's button tokens
+   cannot be trusted to contrast against it. These two inherit the computed
+   ink instead — the one place the app deliberately opts out of the tokens. */
+app-color-bucket .cb-actions .btn,
+app-color-bucket .cb-actions .btn.primary {
+    border: 1.5px solid currentColor;
+    background: none;
+    color: inherit;
+}
+
+app-color-bucket .cb-actions .btn:hover {
+    background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+app-color-bucket .cb-compare {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 12.5px;
+    opacity: .8;
+}
+
+app-color-bucket .cb-cmp-chip {
+    width: 22px;
+    height: 22px;
+    border: 1px solid currentColor;
+    border-radius: 5px;
+}
+
+/* Standalone fallback only — on a desktop sac.toast takes over. */
+app-color-bucket .cb-toast {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 60;
+    padding: 9px 16px;
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+}
+
+app-color-bucket .cb-toast.on { opacity: 1; }
+
+/* ------------------------------------------------------------ responsive -- */
+@media (max-width: 880px) {
+    app-color-bucket .cb-stage {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(38vh, auto) 1fr;
+        height: auto;
+    }
+    app-color-bucket .cb-result {
+        order: -1;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+    }
+    app-color-bucket .cb-recipe { border-right: 0; border-top: 1px solid var(--border); }
+    app-color-bucket .cb-compare { position: static; transform: none; margin-top: 6px; }
+    app-color-bucket .cb-palette { margin-top: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    app-color-bucket * { transition: none !important; }
+}

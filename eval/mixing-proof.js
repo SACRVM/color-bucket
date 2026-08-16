@@ -24,7 +24,8 @@
  *  3. Where does spectral mixing LOSE, and is that a defect or physics?
  *  4. Can the default paint box actually reach the hues a user will ask for?
  */
-import spectral from 'spectral.js';
+import { createRequire } from 'node:module';
+const spectral = createRequire(import.meta.url)('../vendor/spectral.min.js');
 
 // The Oils shelf from prototype/app.html — the default paint box.
 const POTS = [

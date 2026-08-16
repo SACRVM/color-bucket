@@ -1,0 +1,12 @@
+{
+    "id": "color-bucket",
+    "name": "Color Bucket",
+    "icon": "palette",
+    "description": "Mix colors like paint, not like numbers — spectral pigment mixing with real paint-box shelves.",
+    "kind": "window",
+    "tag": "app-color-bucket",
+    "entry": "app.js",
+    "version": "1.0.0",
+    "width": "980px",
+    "height": "660px"
+}

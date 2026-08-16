@@ -9,7 +9,8 @@
  *     black/white mixes (L≈0 for black!) and to our "parts" semantics?
  *  4. Performance (cold construction vs. memoized pots)
  */
-import spectral from 'spectral.js';
+import { createRequire } from 'node:module';
+const spectral = createRequire(import.meta.url)('../vendor/spectral.min.js');
 import { mixPigment, hexToRgb } from '../src/mixing.js';
 
 const C = (h) => new spectral.Color(h);

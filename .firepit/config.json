@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "id": "color-bucket",
+  "commands": [
+    {
+      "name": "Tests",
+      "type": "Shell",
+      "icon": "\uD83E\uDDEA",
+      "command": "powershell",
+      "args": [
+        "-NoExit",
+        "-Command",
+        "npm test"
+      ],
+      "window": "new"
+    },
+    {
+      "name": "Proof",
+      "type": "Shell",
+      "icon": "\uD83D\uDCD0",
+      "command": "powershell",
+      "args": [
+        "-NoExit",
+        "-Command",
+        "npm run proof"
+      ],
+      "window": "new"
+    },
+    {
+      "name": "Eval",
+      "type": "Shell",
+      "icon": "\uD83D\uDD2C",
+      "command": "powershell",
+      "args": [
+        "-NoExit",
+        "-Command",
+        "node eval/spectral-eval.js"
+      ],
+      "window": "new"
+    }
+  ]
+}

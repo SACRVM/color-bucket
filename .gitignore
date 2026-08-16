@@ -3,10 +3,17 @@ node_modules/
 
 # Local tool state (project-wide settings in .claude/settings.json are tracked)
 .claude/settings.local.json
-.firepit/
 
 # OS / editor cruft
 Thumbs.db
 desktop.ini
 .DS_Store
 *.stackdump
+
+# Firepit + Claude Code — shared config versioned, runtime/personal local
+.firepit/inbox/
+.firepit/runs/
+.firepit/knowledge.db*
+!.firepit/config.json
+.claude/*.lock
+.claude/agent-memory/

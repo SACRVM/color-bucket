@@ -140,7 +140,7 @@ At the start of a session, read any pending messages in `.firepit/inbox/*.md` �
 
 ## Firepit knowledge
 
-Before researching something that may already be known, query the knowledge base with the `firepit_knowledge_search` MCP tool (scope `both` covers this project plus the global base). Save durable findings with `firepit_knowledge_add` — written in English, per the indexing convention. The created markdown files live under `.firepit/knowledge/` and are committed like any other file.
+Before researching something that may already be known, query the knowledge base with the `firepit_knowledge_search` MCP tool (scope `both` covers this project plus the global base). Save durable findings with `firepit_knowledge_add` — written in English, per the indexing convention. The created markdown files live under `.firepit/knowledge/`. That folder is **not** versioned here: this repo is public, and a knowledge base needs a destination that is both durable and non-public — which a gitignored folder is not. A destination is being decided; until then treat anything written there as local-only and not backed up.
 
 ## Firepit pinned knowledge
 

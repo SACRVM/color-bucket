@@ -4,6 +4,15 @@ node_modules/
 # Local tool state (project-wide settings in .claude/settings.json are tracked)
 .claude/settings.local.json
 
+# Deliberately blanket, and deliberately above the Firepit block below: keeps
+# .firepit/ out of this repo entirely. The blueprint wants config and knowledge
+# versioned, so `firepit_blueprint_check` will warn that this line "hides shared
+# config" — that warning is expected, not a defect to fix. Project knowledge
+# needs a durable *and* non-public destination first (a gitignored folder is
+# private but unbacked; this repo is backed but public). Until that exists,
+# nothing here ships. Don't remove this line to silence the warning.
+.firepit/
+
 # OS / editor cruft
 Thumbs.db
 desktop.ini

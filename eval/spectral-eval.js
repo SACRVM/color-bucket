@@ -4,7 +4,7 @@
  *
  * Questions to answer before adoption:
  *  1. Correctness invariants (identity, ratio weights, commutativity, continuity)
- *  2. Paint behavior (yellow+blue→green; ultramarine+sienna→neutral?)
+ *  2. Paint behavior (yellow+blue→green)
  *  3. The concentration formula is f²·T²·L — what does that do to
  *     black/white mixes (L≈0 for black!) and to our "parts" semantics?
  *  4. Performance (cold construction vs. memoized pots)
@@ -15,10 +15,6 @@ import { mixPigment, hexToRgb } from '../src/mixing.js';
 
 const C = (h) => new spectral.Color(h);
 const smix = (...pairs) => spectral.mix(...pairs).toString();
-const spread = (hex) => {
-  const [r, g, b] = hexToRgb(hex);
-  return Math.max(r, g, b) - Math.min(r, g, b);
-};
 let pass = 0, fail = 0;
 const check = (label, ok, detail) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? ' — ' + detail : ''}`);
@@ -63,12 +59,12 @@ console.log('\n== 2. Paint behavior ==');
   check('cadmium yellow + ultramarine -> green', g > r && g > b, m);
   info('  (our 3-channel engine)', mixPigment([{ c: '#F2C500', w: 1 }, { c: '#1F3A93', w: 1 }]));
 }
-{
-  const m = smix([C('#1F3A93'), 1], [C('#8C4520'), 1]);
-  const ours = mixPigment([{ c: '#1F3A93', w: 1 }, { c: '#8C4520', w: 1 }]);
-  check(`ultramarine + burnt sienna neutral-ish (spread ${spread(m)} vs ours ${spread(ours)})`,
-    spread(m) < spread(ours), `spectral ${m} vs ours ${ours}`);
-}
+// There is deliberately no complementary-neutrality check here. Ultramarine +
+// burnt sienna drifts olive instead of going neutral; measured reflectance
+// curves were tested as the fix on 2026-08-15 and rejected (the numbers are in
+// "Does it help?" in the README). The drift is an accepted deviation from real
+// pigment behavior, so asserting neutrality would fail the engine against a
+// goal this project decided not to have. Don't re-add it.
 
 console.log('\n== 3. Concentration formula consequences ==');
 {

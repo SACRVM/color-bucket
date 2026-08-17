@@ -11,7 +11,7 @@ node_modules/
 # needs a durable *and* non-public destination first (a gitignored folder is
 # private but unbacked; this repo is backed but public). Until that exists,
 # nothing here ships. Don't remove this line to silence the warning.
-.firepit/
+# .firepit/   # Firepit: blanket ignore disabled — it hid the shared config
 
 # OS / editor cruft
 Thumbs.db

@@ -163,20 +163,77 @@ is an engine rewrite for a feature the product does not have (glazes, layering).
 If that day comes, **Revigo** (Van Gogh palette, 16 paints in linseed/poppyseed
 oil, measured over black *and* white grounds, **CC0**) is the dataset to use.
 
+## Harmony: a palette from your pigments (2026-08-17)
+
+"Colors that go together without a design degree" is the half of the idea the
+engine alone does not deliver. The usual answer is a colour wheel: take a hue,
+add 30 degrees, add 180, call it a scheme. Those colours share an angle and
+nothing else, which is why wheel palettes so often look assembled.
+
+Painters solve it differently and get harmony for free. Pick two or three tubes
+plus white and paint everything from them: every colour on the canvas literally
+shares pigment with every other colour, so nothing can clash. That is the
+classic **limited palette**, it needs subtractive mixing, and it is therefore
+the one palette trick a colour picker cannot copy.
+
+Pick 2–4 pots and the app builds:
+
+- the **pure pigments**, and every **pairwise blend** of them
+- the **mother colour** — all of them mixed together, from three pigments up
+- a **neutral ramp** of that mother colour, `50` to `900`
+
+The ramp is the part that earns its keep for interface work. Mixing all your
+pigments together is how a painter makes a grey that belongs to the painting:
+the result is a *tinted* neutral rather than a dead one, and surfaces built from
+it sit under the hues without fighting them.
+
+**The ramp is specified in lightness, not in mixing ratios.** That was not the
+first attempt, and the first attempt is instructive: light colours dominate a
+spectral mix, so evenly spaced ratios produced wildly uneven steps — measured on
+cadmium yellow + ultramarine, the light end bunched into 0.02 of OKLab L while a
+0.19 hole opened in the middle. Bisecting for a target lightness instead gives
+even steps on every shelf, and makes `500` mean the same thing here as it does
+in any design system.
+
+Shelves that cannot reach a step do not fake it. Game Boy is four greens: it
+yields a five-step ramp (`400`–`800`), not ten labels pointing at four colours.
+
+### Does harmony prove the engine? Only where it should
+
+Harmony follows the mixing mode, so the same pigments can be compared directly.
+Cadmium yellow + cadmium red + ultramarine, OKLCh chroma per blend:
+
+| Blend | Pigment | RGB |
+|---|---|---|
+| yellow + red | 0.177 | 0.161 |
+| **yellow + blue** | **0.132** | **0.075** |
+| red + blue | 0.029 | 0.103 |
+| all three | 0.082 | 0.094 |
+| **mean** | **0.105** | **0.108** |
+
+The mean is a tie — RGB is a hair ahead — which is the same result the mixing
+proof reports and the same reason the average is the wrong lens. What changes is
+*which* blends live. Yellow + blue collapses to khaki in RGB, the case this app
+exists for. Red + blue gains a plum in RGB that it has no business having: no
+painter gets violet out of a warm red and ultramarine either, so the duller
+pigment answer is the correct one.
+
 ## Structure
 
 | Path | Contents |
 |---|---|
 | `src/mixing.js` | Reference 3-channel engine (ES module, no dependencies) |
 | `test/mixing.test.js` | Verification suite for the reference engine |
-| `test/spectral.test.js` | Adoption guards for spectral.js — `npm test` runs both (Node ≥ 18) |
+| `test/spectral.test.js` | Adoption guards for spectral.js |
+| `test/harmony.test.js` | Structural guards for the limited-palette generator — `npm test` runs all three (Node ≥ 18) |
 | `eval/spectral-eval.js` | One-shot evaluation protocol that led to the spectral.js adoption |
 | `eval/mixing-proof.js` | Does the engine beat a color picker? Repeatable — rerun after engine or shelf changes |
 | `app.json` | The manifest a desktop reads before running anything |
 | `app.js` | The app: one custom element, one classic script |
 | `app.css` | App styles — kit tokens only, one `--accent` seed |
 | `index.html` | Standalone harness: the app alone, no desktop, F5 to develop |
-| `vendor/spectral.min.js` | The mixing engine, vendored. `vendor/package.json` scopes it as CommonJS so Node tests load the exact file the browser gets |
+| `lib/harmony.js` | The limited-palette generator. Engine-agnostic — the mixer is injected, so the tests drive it with the real engine |
+| `vendor/spectral.min.js` | The mixing engine, vendored. `vendor/package.json` scopes it as CommonJS so Node tests load the exact file the browser gets; `lib/package.json` does the same for our own code |
 
 **No build step.** `npx serve .` and F5 is the whole dev loop; every push to
 `main` is immediately live on Pages, and a desktop installs the app by reading
@@ -191,8 +248,10 @@ after the move onto the kit, with the same result the eval protocol predicts:
 ## Credits & licenses
 
 - **spectral.js** — © 2025 Ronald van Wijnen, MIT license. The production
-  mixing engine. Ship its copyright + permission notice with every
-  distribution (bundle banner and an "About / Credits" page in the product).
+  mixing engine. Its copyright + permission notice ships in `LICENSE`, and
+  since 2026-08-17 the credit is also visible **inside the app**, at the foot
+  of the recipe panel — a licence file is not something a user of the app ever
+  opens.
 - **LHTSS** — spectral.js builds its reflectance data with a variation of
   Scott Allen Burns' method ("Generating Reflectance Curves from sRGB
   Triplets"); credit alongside.
@@ -246,6 +305,18 @@ after the move onto the kit, with the same result the eval protocol predicts:
     implementation: it is what `test/mixing.test.js` verifies the Kubelka-Munk
     invariants against. The app itself mixes with spectral.js and does not
     import it.
+  - **Harmony shipped (2026-08-17)** — pick 2–4 pots, get the pures, every
+    pairwise blend, the mother colour and a 50..900 neutral ramp mixed from
+    them. Structural guards in `test/harmony.test.js`; see *Harmony* above for
+    the design and the measured pigment-vs-RGB comparison. This was the half of
+    the original idea the engine alone did not deliver.
+  - **Credits and trademark shipped (2026-08-17)** — spectral.js, LHTSS and
+    Kubelka-Munk are credited in the app itself rather than only in `LICENSE`,
+    and the RAL shelf carries its trademark note while it is open.
+- **Open on the engine** — per-pot `tintingStrength`. The library hook exists,
+  but the values would have to be invented: measured data was ruled out on cost,
+  and an earlier round of guessed pot values was caught as a regression before
+  it shipped. This needs published manufacturer ratings, not intuition.
 - **P1** — site MVP: mix, share palettes by URL, no login
 - **P2** — community: Google sign-in, save/like/search palettes (Firebase: Auth + Firestore + Hosting)
 - **P3** — AI-friendly layer: JSON API, llms.txt/MCP, "describe a mood → recipe"

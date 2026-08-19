@@ -23,13 +23,15 @@ Conversation with the owner is **German**; everything in this repo
 
 **One repo, one app.** The repo *is* the app: `app.json` (the manifest a
 desktop reads), `app.js` (one custom element, one classic script), `app.css`,
-`index.html` as a standalone harness, and `vendor/` for the mixing engine.
+`index.html` as a standalone harness, `vendor/` for the mixing engine, and
+`lib/` for our own logic that has to be testable outside a browser.
 
 ## Commands
 
 - `npm run serve` — `npx serve .`, then F5. That is the whole dev loop.
-- `npm test` — 21 tests: reference-engine invariants (`test/mixing.test.js`)
-  + spectral.js adoption guards (`test/spectral.test.js`). Keep green.
+- `npm test` — 33 tests: reference-engine invariants (`test/mixing.test.js`),
+  spectral.js adoption guards (`test/spectral.test.js`), and limited-palette
+  structure (`test/harmony.test.js`). Keep green.
 - `npm run proof` — does the engine actually beat a color picker?
   Rerun after any engine or shelf change; the README records the findings.
 - `node eval/spectral-eval.js` — the one-shot protocol that justified the
@@ -78,6 +80,10 @@ what `onMount` did: every unsubscribe kept, every timer cleared.
 - `vendor/` carries its own `package.json` with `"type": "commonjs"`. That is
   what lets Node `require()` the UMD bundle while the repo root is
   `type: module` — the tests then run against the exact file the browser gets.
+  `lib/` does the same for our own code: anything `app.js` cannot hold because
+  it needs a test goes there as a classic script with a CommonJS tail, and
+  `app.js` injects it alongside the engine. Optional scripts must not be able
+  to stop the app — only the engine is `required` in the loader list.
 - Weights wrapper: pass `factor = Math.sqrt(parts)` into `spectral.mix`
   (it squares factors internally — √ keeps "3 parts" meaning 3 parts).
   Memoize `spectral.Color` objects per hex (measured fast path ~467k mixes/s).
@@ -100,6 +106,18 @@ what `onMount` did: every unsubscribe kept, every timer cleared.
 - Light colors dominate mixes (spectral.js concentration = f²·T²·luminance;
   pure white + pure black 1:1 → #A6A6A6). Calibrate later via per-pot
   `tintingStrength` — the hook already exists in the library.
+- **Harmony is a limited palette, not a colour wheel (2026-08-17).** Wheel
+  schemes (+30°, complementary) share an angle and nothing else. Picking 2–4
+  pots and mixing everything from them is how a painter gets harmony for free,
+  and it is the one approach a colour picker cannot copy. Output: the pures,
+  every pairwise blend, the mother colour, and a neutral ramp of that mother.
+- **The neutral ramp is specified in lightness, and the ratio is solved for.**
+  Fixed ratios measure badly — light colours dominate a spectral mix, so even
+  ratio steps bunched the light end into 0.02 OKLab L and left a 0.19 hole in
+  the middle. Bisecting for a target L gives even steps on every shelf and lets
+  the 50..900 labels mean what they mean in a design system. Targets a shelf
+  cannot reach are pulled in only if they are just outside; a step that would
+  be indistinguishable from its neighbour is dropped instead of emitted.
 - **Built on SACRVM APPKIT (2026-08-16).** The Shadow-DOM `<color-bucket>`
   plan is dropped: the kit requires light DOM, which is better here anyway
   because the tokens reach the markup. URL recipes, palette storage and theme
@@ -119,7 +137,18 @@ what `onMount` did: every unsubscribe kept, every timer cleared.
   running standalone (`app-color-bucket` → `color-bucket`). Renaming the tag
   without renaming the manifest id silently moves the storage.
 - RAL pot values are common sRGB approximations; "RAL" is a trademark of
-  RAL gGmbH — the product needs a trademark note if the shelf keeps the name.
+  RAL gGmbH. The shelf keeps the name, so the app shows a trademark note while
+  that shelf is open — a `note` field on the shelf, not a special case in the
+  view. Any shelf needing small print gets it the same way.
+- **The kit's `.btn` is `width: 100%` by design** — it is a sidebar button
+  first. The pair in `.cb-actions` only looks normal because two of them share
+  a flex line and shrink against each other. A button standing alone has to opt
+  out with `width: auto`, or it spans its container.
+- **`onRoute` has to end in `refresh()`.** It rebuilds structure and then calls
+  `setMode(mode, true)`, which is deliberately silenced so the mix is computed
+  once. Without the explicit refresh, a shared link opened into a running app
+  updates the recipe rows while the result, the pot badges and the harmony
+  panel still describe the previous recipe.
 
 ## State & next steps
 
@@ -128,10 +157,17 @@ what `onMount` did: every unsubscribe kept, every timer cleared.
   the eval prediction exactly, unchanged across the migration); 11 paint-box
   shelves; per-bucket hex input; recipe in the route; palette persisted via
   `context.fs`; MIT.
+  Harmony ships (2026-08-17): pick 2–4 pots, get the pures, every pairwise
+  blend, the mother colour and a 50..900 neutral ramp mixed from them — this is
+  where "colors that go together without a design degree" actually lives.
+  spectral.js is credited in the app itself, and RAL carries its trademark note.
 - **Next:** publish — Settings → Pages → deploy from `main`, `/ (root)`, then
   `app.json` must load over HTTPS before a desktop can install it.
-- Not yet done: harmony (pick 2–3 pots → a whole palette), which is where
-  "colors that go together without a design degree" actually lives.
+- Not yet done: per-pot `tintingStrength`. The hook exists in the library and
+  the decisions log calls for it, but the values would have to be invented —
+  measured data was ruled out on cost, and an earlier round of guessed pot
+  values was caught as a regression before it shipped. Needs published
+  manufacturer ratings, not intuition.
 - `colorbucket.de` was available on 2026-08-13 (DENIC RDAP).
 
 ## Firepit inbox

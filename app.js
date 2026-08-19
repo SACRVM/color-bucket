@@ -272,6 +272,7 @@
                             <p class="cb-harm-foot">
                                 <span class="cb-harm-why"></span>
                                 <button type="button" class="btn cb-harm-add">Add all to palette</button>
+                                <button type="button" class="btn cb-harm-css">Copy as CSS</button>
                             </p>
                         </section>
                     </main>
@@ -309,6 +310,14 @@
                 const added = this.palette.length - before;
                 if (added) { this.renderPalette(); this.savePalette(); }
                 this.toast(added ? "Added " + added + " to the palette" : "Already in the palette");
+            });
+            // The ramp is already labelled on the scale a design system uses,
+            // so getting from "nice colours" to "tokens I can build on" should
+            // be a copy rather than a retyping job.
+            this.q(".cb-harm-css").addEventListener("click", () => {
+                if (!this._harmony || !window.cbHarmony) return;
+                const css = cbHarmony.toCSS(this._harmony);
+                this.copyRaw(css, "Copied the palette as CSS custom properties");
             });
             this.q(".cb-pig").addEventListener("click", () => this.setMode("pigment"));
             this.q(".cb-rgb").addEventListener("click", () => this.setMode("rgb"));
@@ -602,8 +611,14 @@
             });
         }
 
-        copy(text) {
-            const done = () => this.toast("Copied " + text);
+        /** Copies a colour and says so by showing it — the value is short. */
+        copy(text) { this.copyRaw(text, "Copied " + text); }
+
+        /** Copies anything. A twenty-line block of CSS does not belong in a
+            toast, so the announcement is separate from what lands on the
+            clipboard. */
+        copyRaw(text, message) {
+            const done = () => this.toast(message);
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(done, () => this.copyFallback(text, done));
             } else this.copyFallback(text, done);

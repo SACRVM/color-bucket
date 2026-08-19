@@ -198,6 +198,12 @@ in any design system.
 Shelves that cannot reach a step do not fake it. Game Boy is four greens: it
 yields a five-step ramp (`400`–`800`), not ten labels pointing at four colours.
 
+**Copy as CSS** takes the whole palette out as custom properties — pigments keep
+their names, blends are numbered with the recipe in a comment, and the ramp
+arrives as `--neutral-50` … `--neutral-900`. Since the labels already sit on the
+scale a design system uses, the step from "nice colours" to "tokens I can build
+on" is a paste rather than a retyping job.
+
 ### Does harmony prove the engine? Only where it should
 
 Harmony follows the mixing mode, so the same pigments can be compared directly.

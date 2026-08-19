@@ -485,18 +485,20 @@ app-color-bucket .cb-harm-why {
     opacity: .75;
 }
 
-app-color-bucket .cb-harm-add {
+app-color-bucket .cb-harm-add,
+app-color-bucket .cb-harm-css {
     border: 1.5px solid currentColor;
     background: none;
     color: inherit;
     /* The kit's .btn is deliberately width:100% — it is designed as a sidebar
        button first. The pair in .cb-actions only looks normal because two of
-       them share a flex line and shrink against each other; this one stands
-       alone, so it has to opt out explicitly. */
+       them share a flex line and shrink against each other; these have to opt
+       out explicitly. */
     width: auto;
 }
 
-app-color-bucket .cb-harm-add:hover {
+app-color-bucket .cb-harm-add:hover,
+app-color-bucket .cb-harm-css:hover {
     background: color-mix(in srgb, currentColor 18%, transparent);
 }
 

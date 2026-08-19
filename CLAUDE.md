@@ -160,6 +160,8 @@ what `onMount` did: every unsubscribe kept, every timer cleared.
   Harmony ships (2026-08-17): pick 2–4 pots, get the pures, every pairwise
   blend, the mother colour and a 50..900 neutral ramp mixed from them — this is
   where "colors that go together without a design degree" actually lives.
+  *Copy as CSS* exports the lot as custom properties (`lib/harmony.js` →
+  `toCSS`), which is the bridge to a design system.
   spectral.js is credited in the app itself, and RAL carries its trademark note.
 - **Next:** publish — Settings → Pages → deploy from `main`, `/ (root)`, then
   `app.json` must load over HTTPS before a desktop can install it.

@@ -124,3 +124,46 @@ test('harmony: the mother of yellow + ultramarine is the documented green', () =
     // this moves, the engine moved, and the README's numbers went stale.
     assert.equal(build(['#F2C500', '#1F3A93']).mother, '#699437');
 });
+
+/* --------------------------------------------------------------- toCSS -- */
+
+test('harmony/css: nothing in, nothing out', () => {
+    assert.equal(harmony.toCSS(null), '');
+    assert.equal(harmony.toCSS(build(['#F2C500'])), '');
+});
+
+test('harmony/css: every line is a comment or a custom property', () => {
+    const css = harmony.toCSS(build(['#F2C500', '#D93A2B', '#1F3A93']));
+    for (const line of css.split('\n')) {
+        assert.match(line, /^(\/\*.*\*\/|--[a-z0-9-]+: #[0-9A-F]{6};(\s+\/\*.*\*\/)?)$/,
+            `not a usable line: ${line}`);
+    }
+});
+
+test('harmony/css: the ramp arrives as tokens, one per step', () => {
+    const built = build(['#F2C500', '#1F3A93']);
+    const css = harmony.toCSS(built);
+    const steps = css.split('\n').filter((l) => l.startsWith('--neutral-'));
+    assert.equal(steps.length, built.neutrals.length);
+    for (const n of built.neutrals) {
+        assert.ok(css.includes(`--neutral-${n.label}: ${n.hex};`), `missing ${n.label}`);
+    }
+});
+
+test('harmony/css: the mother is named only when it is not just the blend', () => {
+    // Two pigments: the blend IS the mother, so a --mother token would double it.
+    assert.ok(!harmony.toCSS(build(['#F2C500', '#1F3A93'])).includes('--mother:'));
+    assert.ok(harmony.toCSS(build(['#F2C500', '#D93A2B', '#1F3A93'])).includes('--mother:'));
+});
+
+test('harmony/css: pigments that slug to the same name stay distinct', () => {
+    // Two different hexes could carry the same label; CSS cannot have both.
+    const built = harmony.build({
+        sources: ['#F2C500', '#1F3A93'], white: WHITE, dark: DARK, mix,
+        name: () => 'Same Name',
+    });
+    const css = harmony.toCSS(built);
+    const props = css.split('\n').filter((l) => l.startsWith('--'))
+        .map((l) => l.slice(0, l.indexOf(':')));
+    assert.equal(new Set(props).size, props.length, 'duplicate custom property name');
+});

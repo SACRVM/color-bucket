@@ -1,0 +1,4 @@
+{
+  "//": "Scopes lib/ as CommonJS so Node can require() the same classic script the browser loads. The repo root is type=module; without this, .js here would be ESM and require() would fail. Same trick as vendor/ — and for the same reason: the tests must run against the exact file that ships.",
+  "type": "commonjs"
+}

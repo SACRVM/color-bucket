@@ -6,11 +6,11 @@
  * paint pots: a raw color picker is the problem this solves, so every shelf is
  * a ready-made box you can start from without picking anything.
  *
- * THE ENGINE IS LOADED BY THE APP ITSELF. sac.app has styles() but no script
+ * THE SCRIPTS ARE LOADED BY THE APP ITSELF. sac.app has styles() but no script
  * loader, and a desktop only ever fetches `entry` from the manifest — so
- * index.html cannot be where spectral.js comes from. The app injects it and
- * defines its tag once it is there; elements already in the DOM upgrade on
- * define, so defining late is safe.
+ * index.html cannot be where spectral.js comes from. The app injects it, along
+ * with lib/harmony.js, and defines its tag once they are there; elements
+ * already in the DOM upgrade on define, so defining late is safe.
  */
 (function () {
     "use strict";
@@ -138,6 +138,19 @@
     const s2l = (v) => (v /= 255) <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
     function luma(h) { const r = hex2rgb(h); return 0.2126 * s2l(r[0]) + 0.7152 * s2l(r[1]) + 0.0722 * s2l(r[2]); }
 
+    /* The pots a shelf tints and shades with. Derived, not declared: several
+       shelves have no white at all (Game Boy is four greens), and a shelf that
+       gains a pot should not need a second edit somewhere else to stay right. */
+    function shelfEnds(id) {
+        const pots = shelfById(id).pots;
+        let light = pots[0], dark = pots[0];
+        for (const p of pots) {
+            if (luma(p.c) > luma(light.c)) light = p;
+            if (luma(p.c) < luma(dark.c)) dark = p;
+        }
+        return { white: light.c, dark: dark.c };
+    }
+
     function parseHex(t) {
         t = String(t).trim().replace(/^#/, "");
         if (/^[0-9a-fA-F]{3}$/.test(t)) t = t.replace(/[0-9a-fA-F]/g, (c) => c + c);
@@ -240,6 +253,15 @@
                             <button type="button" class="btn primary cb-to-pal">Save to palette</button>
                         </div>
                         <div class="cb-compare"><span class="cb-cmp-chip"></span><span class="cb-cmp-text"></span></div>
+                        <section class="cb-harmony" hidden>
+                            <p class="cb-harm-title">A palette from these pigments</p>
+                            <div class="cb-harm-hues"></div>
+                            <div class="cb-harm-neutrals"></div>
+                            <p class="cb-harm-foot">
+                                <span class="cb-harm-why"></span>
+                                <button type="button" class="btn cb-harm-add">Add all to palette</button>
+                            </p>
+                        </section>
                     </main>
                 </div>`;
         }
@@ -266,6 +288,16 @@
                 if (this.palette.indexOf(h) === -1) { this.palette.push(h); this.renderPalette(); this.savePalette(); }
             });
             this.q(".cb-copy-pal").addEventListener("click", () => this.copy(this.palette.join(", ")));
+            this.q(".cb-harm-add").addEventListener("click", () => {
+                if (!this._harmony) return;
+                const before = this.palette.length;
+                for (const s of this._harmony.hues.concat(this._harmony.neutrals)) {
+                    if (this.palette.indexOf(s.hex) === -1) this.palette.push(s.hex);
+                }
+                const added = this.palette.length - before;
+                if (added) { this.renderPalette(); this.savePalette(); }
+                this.toast(added ? "Added " + added + " to the palette" : "Already in the palette");
+            });
             this.q(".cb-pig").addEventListener("click", () => this.setMode("pigment"));
             this.q(".cb-rgb").addEventListener("click", () => this.setMode("rgb"));
 
@@ -275,6 +307,11 @@
                 if (!r || encodeRecipe(this.buckets, this.mode, this.shelf) === route) return;
                 this.buckets = r.buckets; this.mode = r.mode; this.shelf = r.shelf;
                 this.buildTabs(); this.buildPots(); this.buildBuckets(); this.setMode(this.mode, true);
+                // setMode is silenced above so the mix is computed once, not
+                // twice — which means the refresh has to happen here. Without
+                // it the rows show the new recipe while the result, the pot
+                // badges and the palette still describe the old one.
+                this.refresh();
             });
 
             this.loadPalette();
@@ -476,13 +513,77 @@
             this.q(".cb-cmp-text").textContent =
                 (this.mode === "pigment" ? "What RGB would give you: " : "What pigment would give you: ") + other;
 
+            this.updateHarmony();
+
             if (this._ctx && this._ctx.deepLink) {
                 this._ctx.deepLink.set(encodeRecipe(this.buckets, this.mode, this.shelf));
             }
         }
 
+        /* ---------------------------------------------------------- harmony --
+           A limited palette out of the pots already in the recipe, built with
+           whichever mixer the mode selects.
+           Following the mode is deliberate, but not because RGB loses overall:
+           measured on cadmium yellow + cadmium red + ultramarine, mean blend
+           chroma is 0.105 pigment against 0.108 RGB — a tie, the same result
+           the mixing proof reports. What changes is WHICH blends live. Yellow +
+           blue collapses to khaki in RGB (0.075 against 0.132), the case this
+           app exists for; red + blue gains a plum it has no business having
+           (0.103 against 0.029), because no painter gets violet out of a warm
+           red and ultramarine either. Showing both is the honest argument. */
+        updateHarmony() {
+            const box = this.q(".cb-harmony");
+            const gen = window.cbHarmony;
+            if (!gen) { box.hidden = true; return; }
+
+            const ends = shelfEnds(this.shelf);
+            const built = gen.build({
+                sources: this.buckets.map((b) => b.c),
+                white: ends.white,
+                dark: ends.dark,
+                mix: this.mode === "pigment" ? mixPigment : mixRGB,
+                name: potName,
+            });
+
+            this._harmony = built;
+            box.hidden = !built;
+            if (!built) return;
+
+            this.syncSwatches(this.q(".cb-harm-hues"), built.hues, "cb-hsw", false);
+            this.syncSwatches(this.q(".cb-harm-neutrals"), built.neutrals, "cb-nsw", true);
+            this.q(".cb-harm-why").textContent =
+                built.sources.length + " pigments · every colour mixed from them";
+        }
+
+        /** Reconcile in place. Wiping and rebuilding these on every refresh
+            would be the same mistake as rebuilding the recipe rows: refresh()
+            runs on `input`, and churning DOM during a drag is what closes the
+            native colour picker. Only the count ever changes structure. */
+        syncSwatches(box, items, cls, captioned) {
+            // lastElementChild, not lastChild: removing a stray text node would
+            // not shrink .children, and the loop would never end.
+            while (box.children.length > items.length) box.removeChild(box.lastElementChild);
+            while (box.children.length < items.length) {
+                const b = document.createElement("button");
+                b.type = "button";
+                b.className = cls;
+                b.appendChild(document.createElement("span"));
+                if (captioned) b.appendChild(document.createElement("small"));
+                b.addEventListener("click", () => this.copy(b.dataset.hex));
+                box.appendChild(b);
+            }
+            items.forEach((it, i) => {
+                const b = box.children[i];
+                b.dataset.hex = it.hex;
+                b.firstChild.style.background = it.hex;
+                if (captioned) b.lastChild.textContent = it.label;
+                b.title = it.label + " — " + it.hex;
+                b.setAttribute("aria-label", "Copy " + it.hex + ", " + it.label);
+            });
+        }
+
         copy(text) {
-            const done = () => this.toast(text);
+            const done = () => this.toast("Copied " + text);
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(done, () => this.copyFallback(text, done));
             } else this.copyFallback(text, done);
@@ -500,8 +601,9 @@
         }
 
         // sac.toast is the host's and optional: never assume chrome.
-        toast(text) {
-            if (typeof sac.toast === "function") { sac.toast("Copied " + text, { kind: "success" }); return; }
+        /** Takes the finished message: not everything worth announcing is a copy. */
+        toast(message) {
+            if (typeof sac.toast === "function") { sac.toast(message, { kind: "success" }); return; }
             let el = this.q(".cb-toast");
             if (!el) {
                 el = document.createElement("div");
@@ -509,7 +611,7 @@
                 el.setAttribute("role", "status");
                 this.appendChild(el);
             }
-            el.textContent = "Copied " + text;
+            el.textContent = message;
             el.classList.add("on");
             clearTimeout(this._toastT);
             this._toastT = setTimeout(() => el.classList.remove("on"), 1400);
@@ -517,22 +619,38 @@
     }
 
     /* ------------------------------------------------------------- engine --
-       One <script> per document however many app instances exist. */
-    function withEngine(done) {
-        if (window.spectral) return done();
-        const id = "color-bucket-spectral";
-        let s = document.getElementById(id);
+       One <script> per document however many app instances exist. Two files:
+       the mixing engine, and the palette generator that has to be loadable by
+       Node as well so the tests can drive it. Both are plain classic scripts —
+       still no build step anywhere. */
+    const SCRIPTS = [
+        { id: "color-bucket-spectral", src: "vendor/spectral.min.js", global: "spectral", required: true },
+        { id: "color-bucket-harmony", src: "lib/harmony.js", global: "cbHarmony", required: false },
+    ];
+
+    function loadScript(spec, done) {
+        if (window[spec.global]) return done();
+        let s = document.getElementById(spec.id);
         if (!s) {
             s = document.createElement("script");
-            s.id = id;
-            s.src = BASE + "vendor/spectral.min.js";
+            s.id = spec.id;
+            s.src = BASE + spec.src;
             document.head.appendChild(s);
         }
         s.addEventListener("load", done, { once: true });
         s.addEventListener("error", () => {
-            console.error("[color-bucket] spectral.js failed to load from " + s.src);
+            console.error("[color-bucket] failed to load " + s.src);
+            // Mixing is the app; a palette generator is not. Losing the engine
+            // means never defining the tag, losing harmony means one hidden
+            // panel — so only the optional one lets the app continue.
+            if (!spec.required) done();
         }, { once: true });
     }
 
-    withEngine(() => sac.app.define("app-color-bucket", AppColorBucket));
+    function withScripts(done) {
+        let left = SCRIPTS.length;
+        SCRIPTS.forEach((s) => loadScript(s, () => { if (--left === 0) done(); }));
+    }
+
+    withScripts(() => sac.app.define("app-color-bucket", AppColorBucket));
 })();

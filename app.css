@@ -304,7 +304,9 @@ app-color-bucket .cb-result {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    padding: 40px 24px;
+    /* Extra room at the foot: .cb-compare is pinned there out of flow, and the
+       harmony block below the actions would otherwise grow underneath it. */
+    padding: 40px 24px 58px;
     transition: background .25s ease;
     /* background and colour are set from the mix itself — that IS the output */
 }
@@ -365,6 +367,115 @@ app-color-bucket .cb-cmp-chip {
     border-radius: 5px;
 }
 
+/* ---------------------------------------------------------------- harmony --
+   Also on the result plane, so it follows the same documented exception as the
+   buttons above: every rule here inherits the computed ink instead of reaching
+   for a token, because the plane is an arbitrary mixed colour. The swatch fills
+   themselves are data, exactly like the pots. */
+app-color-bucket .cb-harmony {
+    width: min(100%, 620px);
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+}
+
+app-color-bucket .cb-harm-title {
+    margin: 0 0 12px;
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    text-align: center;
+    opacity: .75;
+}
+
+app-color-bucket .cb-harm-hues {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+app-color-bucket .cb-hsw,
+app-color-bucket .cb-nsw {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+app-color-bucket .cb-hsw > span,
+app-color-bucket .cb-nsw > span {
+    display: block;
+    border: 1px solid color-mix(in srgb, currentColor 55%, transparent);
+    transition: transform .12s ease;
+}
+
+app-color-bucket .cb-hsw > span {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+}
+
+app-color-bucket .cb-hsw:hover > span,
+app-color-bucket .cb-nsw:hover > span { transform: translateY(-2px); }
+
+/* The neutrals are a scale, not a set — they read as a ramp only if they sit
+   in order, edge to edge, at equal width. */
+app-color-bucket .cb-harm-neutrals {
+    display: flex;
+    gap: 3px;
+}
+
+app-color-bucket .cb-nsw {
+    flex: 1;
+    min-width: 0;
+}
+
+app-color-bucket .cb-nsw > span {
+    height: 34px;
+    border-radius: 5px;
+}
+
+app-color-bucket .cb-nsw > small {
+    display: block;
+    margin-top: 5px;
+    font-size: 9.5px;
+    letter-spacing: .06em;
+    font-variant-numeric: tabular-nums;
+    opacity: .7;
+}
+
+app-color-bucket .cb-harm-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin: 18px 0 0;
+}
+
+app-color-bucket .cb-harm-why {
+    font-size: 12.5px;
+    opacity: .75;
+}
+
+app-color-bucket .cb-harm-add {
+    border: 1.5px solid currentColor;
+    background: none;
+    color: inherit;
+    /* The kit's .btn is deliberately width:100% — it is designed as a sidebar
+       button first. The pair in .cb-actions only looks normal because two of
+       them share a flex line and shrink against each other; this one stands
+       alone, so it has to opt out explicitly. */
+    width: auto;
+}
+
+app-color-bucket .cb-harm-add:hover {
+    background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
 /* Standalone fallback only — on a desktop sac.toast takes over. */
 app-color-bucket .cb-toast {
     position: fixed;
@@ -400,6 +511,13 @@ app-color-bucket .cb-toast.on { opacity: 1; }
     app-color-bucket .cb-recipe { border-right: 0; border-top: 1px solid var(--border); }
     app-color-bucket .cb-compare { position: static; transform: none; margin-top: 6px; }
     app-color-bucket .cb-palette { margin-top: 6px; }
+    /* The result plane is sticky here, so every pixel it gains is a pixel the
+       recipe loses. Harmony stays, but at a size that does not take the screen. */
+    app-color-bucket .cb-harmony { margin-top: 16px; padding-top: 14px; }
+    app-color-bucket .cb-hsw > span { width: 30px; height: 30px; }
+    app-color-bucket .cb-nsw > span { height: 24px; }
+    app-color-bucket .cb-nsw > small { display: none; }
+    app-color-bucket .cb-harm-why { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

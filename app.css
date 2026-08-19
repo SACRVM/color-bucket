@@ -54,6 +54,30 @@ app-color-bucket .cb-hint {
     color: var(--text-muted);
 }
 
+/* Small print a shelf carries with it. RAL is the reason it exists: the name
+   is someone else's trademark and the values are approximations, so both have
+   to be said where the pots are, not buried in a readme. */
+app-color-bucket .cb-shelf-note {
+    margin: 8px 0 0;
+    padding-left: 10px;
+    border-left: 2px solid var(--border-strong);
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--text-dim);
+}
+
+/* The engine is someone else's work under MIT, and the licence asks for the
+   notice to travel with the software. A file in the repo is not something a
+   user of the app ever sees, so the credit lives in the app too. */
+app-color-bucket .cb-colophon {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-dim);
+}
+
 /* shelf tabs */
 app-color-bucket .cb-tabs {
     display: flex;

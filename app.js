@@ -112,7 +112,12 @@
         ] },
         // RAL values are common sRGB approximations. "RAL" is a trademark of
         // RAL gGmbH; if this shelf keeps the name the product needs a note.
-        { id: "ral", label: "RAL", pots: [
+        { id: "ral", label: "RAL",
+          note: "“RAL” is a registered trademark of RAL gGmbH, which is not " +
+                "affiliated with this app and does not endorse it. These values " +
+                "are common sRGB approximations of the classic collection, not " +
+                "colour standards — match a physical fan deck, never a screen.",
+          pots: [
             { name: "Cream 9001", c: "#FDF4E3" }, { name: "Light Ivory 1015", c: "#EAE6CA" },
             { name: "Signal Yellow 1003", c: "#F7BA0B" }, { name: "Pure Orange 2004", c: "#E75B12" },
             { name: "Traffic Red 3020", c: "#C1121C" }, { name: "Ruby Red 3003", c: "#9B111E" },
@@ -225,6 +230,7 @@
                             <div class="cb-tabs" role="group" aria-label="Choose a paint box"></div>
                             <div class="cb-pots"></div>
                             <p class="cb-hint">Tap a pot to add a dab — tap again for another part.</p>
+                            <p class="cb-shelf-note" hidden></p>
                         </section>
                         <section>
                             <p class="cb-label">Recipe</p>
@@ -244,6 +250,12 @@
                             <div class="cb-swatches"></div>
                             <button type="button" class="btn cb-copy-pal" hidden>Copy all hex values</button>
                         </section>
+                        <footer class="cb-colophon">
+                            Pigment mixing by <strong>spectral.js</strong> — MIT,
+                            © 2025 Ronald van Wijnen, whose reflectance curves follow
+                            Scott Allen Burns' LHTSS method. Kubelka-Munk theory:
+                            Paul Kubelka &amp; Franz Munk, 1931. Color Bucket is MIT.
+                        </footer>
                     </aside>
                     <main class="cb-result" aria-live="polite">
                         <p class="cb-result-name">Your mix</p>
@@ -371,10 +383,18 @@
         }
 
         buildPots() {
+            const shelf = shelfById(this.shelf);
             const box = this.q(".cb-pots");
             box.textContent = "";
-            box.classList.toggle("cb-pots-few", shelfById(this.shelf).pots.length <= 8);
-            this._potEls = shelfById(this.shelf).pots.map((p) => {
+            box.classList.toggle("cb-pots-few", shelf.pots.length <= 8);
+
+            // Shelf-specific small print — currently only RAL, which needs a
+            // trademark note to keep using the name.
+            const note = this.q(".cb-shelf-note");
+            note.textContent = shelf.note || "";
+            note.hidden = !shelf.note;
+
+            this._potEls = shelf.pots.map((p) => {
                 const b = document.createElement("button");
                 b.type = "button";
                 b.className = "cb-pot";

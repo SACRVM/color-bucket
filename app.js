@@ -236,7 +236,11 @@
                 <div class="cb-stage">
                     <aside class="sidebar cb-side">
                         <sac-section title="Paint pots">
-                            <sac-tab-group class="cb-shelves" active="${this.shelf}">
+                            <!-- overflow="wrap": eleven shelves do not fit one
+                                 row of a sidebar. Ignored by kit builds older
+                                 than the one that added it, which costs
+                                 nothing — the strip simply stays as it was. -->
+                            <sac-tab-group class="cb-shelves" overflow="wrap" active="${this.shelf}">
                                 ${tabs}${panels}
                             </sac-tab-group>
                             <p class="cb-hint">Tap a pot to add a dab — tap again for another part.</p>

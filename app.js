@@ -268,7 +268,6 @@
                             <button type="button" class="btn cb-copy-pal" hidden>Copy all hex values</button>
                         </sac-section>
 
-                        <button type="button" class="btn cb-about">About &amp; credits</button>
                     </aside>
 
                     <main class="cb-result" aria-live="polite">
@@ -341,7 +340,15 @@
                 if (this.palette.indexOf(h) === -1) { this.palette.push(h); this.renderPalette(); this.savePalette(); }
             });
             this.q(".cb-copy-pal").addEventListener("click", () => this.copy(this.palette.join(", ")));
-            this.q(".cb-about").addEventListener("click", () => this.showAbout());
+            /* An app-level action belongs in the ribbon, not in the app's own
+               body: sac.toolbar is the ribbon counterpart of context.sidebar,
+               so every app on the desktop wears the same chrome. Guarded like
+               every other host-provided global. */
+            if (sac.toolbar) {
+                sac.toolbar.set([
+                    { icon: "info", title: "About & credits", onClick: () => this.showAbout() },
+                ]);
+            }
 
             this.q(".cb-harm-add").addEventListener("click", () => {
                 if (!this._harmony) return;
@@ -396,7 +403,10 @@
         /** Undo exactly what onMount did. */
         onUnmount() {
             if (this._offRoute) { this._offRoute(); this._offRoute = null; }
-            if (this._dialog) { this._dialog.remove(); this._dialog = null; }
+            // A shell's router clears the ribbon between view swaps, but the
+            // harness has no router — and onUnmount undoes exactly what
+            // onMount did, wherever it is running.
+            if (sac.toolbar) sac.toolbar.clear();
         }
 
         q(sel) { return this.querySelector(sel); }
@@ -455,12 +465,25 @@
                 const row = document.createElement("div");
                 row.className = "cb-row";
 
+                /* The name spans the whole row rather than riding along as the
+                   colour field's own label: the field's label sits above the
+                   field ONLY, which leaves a hole over the stepper and the
+                   delete button and makes three controls of slightly different
+                   heights look scattered. One caption, then one line. */
+                const name = document.createElement("span");
+                name.className = "cb-row-name";
+                name.textContent = potName(b.c);
+
+                const controls = document.createElement("div");
+                controls.className = "cb-row-controls";
+
                 const field = document.createElement("sac-color-field");
-                field.setAttribute("label", potName(b.c));
                 field.setAttribute("value", b.c);
                 field.addEventListener("sac:color-change", (e) => {
                     b.c = String(e.detail.value).toUpperCase();
-                    field.setAttribute("label", potName(b.c));
+                    name.textContent = potName(b.c);
+                    parts.setAttribute("label", "Parts of " + potName(b.c));
+                    del.setAttribute("aria-label", "Remove " + potName(b.c));
                     this.refresh();
                 });
 
@@ -475,7 +498,7 @@
                 const del = document.createElement("button");
                 del.type = "button";
                 del.className = "btn cb-del";
-                del.textContent = "×";
+                del.appendChild(document.createElement("sac-icon")).setAttribute("name", "trash");
                 del.setAttribute("aria-label", "Remove " + potName(b.c));
                 del.disabled = this.buckets.length < 2;
                 del.addEventListener("click", () => {
@@ -484,9 +507,10 @@
                     this.buildRows(); this.refresh();
                 });
 
-                row.append(field, parts, del);
+                controls.append(field, parts, del);
+                row.append(name, controls);
                 box.appendChild(row);
-                return { row, field, parts, del };
+                return { row, name, field, parts, del };
             });
         }
 
@@ -523,6 +547,7 @@
                 const r = this._rows[i];
                 if (!r) return;
                 if (String(r.field.value || "").toUpperCase() !== b.c.toUpperCase()) r.field.value = b.c;
+                if (r.name.textContent !== potName(b.c)) r.name.textContent = potName(b.c);
                 if (Number(r.parts.value) !== b.w) r.parts.value = b.w;
                 r.del.disabled = this.buckets.length < 2;
             });
@@ -589,31 +614,33 @@
                 built.sources.length + " pigments · every colour mixed from them";
         }
 
-        /* Third-party notices belong in the repo and behind a deliberate click,
-           never parked permanently at the foot of the app. */
+        /* Third-party notices belong in the repo and behind a deliberate
+           click, never parked permanently in the app's chrome.
+           sac.dialog.confirm builds the element, waits for the answer, removes
+           it and resolves — all of which this app did by hand once. Guarded
+           the way notes guards it, because an app must survive a host that
+           brings no dialog at all. */
         showAbout() {
-            const dlg = document.createElement("sac-dialog");
-            dlg.setAttribute("title", "Color Bucket");
-            dlg.buttons = [{ action: "close", label: "Close", kind: "default" }];
-            const body = document.createElement("div");
-            body.className = "cb-about-body";
-            body.innerHTML =
-                "<p>Mix colors like paint, not like numbers. Built on SACRVM APPKIT.</p>" +
-                "<p><strong>Pigment mixing:</strong> spectral.js — MIT licence, © 2025 " +
-                "Ronald van Wijnen. Its reflectance curves follow Scott Allen Burns' " +
-                "LHTSS method. Kubelka-Munk theory: Paul Kubelka &amp; Franz Munk, 1931.</p>" +
-                "<p><strong>RAL shelf:</strong> “RAL” is a registered trademark of RAL gGmbH, " +
-                "which is not affiliated with this app. Those values are common sRGB " +
-                "approximations, not colour standards.</p>" +
-                "<p>Color Bucket is MIT licensed. The full notices ship in LICENSE.</p>";
-            dlg.append(body);
-            document.body.appendChild(dlg);
-            dlg.addEventListener("sac-dialog:action", () => {
-                dlg.remove();
-                if (this._dialog === dlg) this._dialog = null;
-            });
-            this._dialog = dlg;
-            dlg.open();
+            const text = [
+                "Mix colors like paint, not like numbers. Built on SACRVM APPKIT.",
+                "Pigment mixing: spectral.js — MIT licence, © 2025 Ronald van Wijnen. "
+                    + "Its reflectance curves follow Scott Allen Burns' LHTSS method. "
+                    + "Kubelka-Munk theory: Paul Kubelka & Franz Munk, 1931.",
+                "RAL shelf: “RAL” is a registered trademark of RAL gGmbH, which is "
+                    + "not affiliated with this app. Those values are common sRGB "
+                    + "approximations, not colour standards.",
+                "Color Bucket is MIT licensed. The full notices ship in LICENSE.",
+            ].join("\n\n");
+
+            if (sac.dialog && typeof sac.dialog.confirm === "function") {
+                sac.dialog.confirm({
+                    title: "Color Bucket",
+                    message: text,
+                    buttons: [{ action: "close", label: "Close", kind: "default" }],
+                });
+                return;
+            }
+            window.alert(text);
         }
 
         /** Copies a colour and says so by showing it — the value is short. */

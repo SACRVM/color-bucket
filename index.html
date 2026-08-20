@@ -7,15 +7,16 @@
 
     <!-- The harness: the app alone, no desktop, F5 to develop.
          An app does NOT vendor the kit — its host provides it. Here the host
-         is this page, so it borrows the kit from the appkit's own site. -->
+         is this page, so it borrows the kit from the appkit's own site. Swap
+         this for a local path if you keep a copy. -->
     <link rel="stylesheet" href="https://sacrvm.github.io/sacrvm-appkit/kit/css/ui.css">
     <script defer src="https://sacrvm.github.io/sacrvm-appkit/kit/js/all.js"></script>
 
     <script defer>
         // The app is injected AFTER the kit — exactly what a desktop does
-        // before it opens you. all.js injects its own scripts, and injected
+        // before it opens you. (all.js injects its scripts, and injected
         // scripts do not hold up DOMContentLoaded, so a plain
-        // <script defer src="app.js"> would run too early and find no sac.
+        // <script defer src="app.js"> would run too early and find no sac.)
         function loadApp() {
             const s = document.createElement("script");
             s.src = "app.js";
@@ -24,46 +25,19 @@
         if (window.sacReady) loadApp();
         else document.addEventListener("sac:ready", loadApp, { once: true });
     </script>
-
-    <style>
-        /* Harness only — not part of the app.
-
-           This used to be a fixed 980×660 box at the top left, on the theory
-           that developing against the size a <sac-window> gives the app is
-           worth something. It is, but it also meant that opening the page
-           directly showed a small panel stranded in the corner of a large dark
-           screen: it read as a test rig, not as the app. Since this page is
-           also what Pages serves and what anyone opening the project sees
-           first, it now centres and takes the room it is given, keeping the
-           window card so the shape still matches an installed app. */
-        html, body { height: 100%; }
-        body {
-            margin: 0;
-            padding: clamp(0px, 2vmin, 24px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .frame {
-            width: min(1280px, 100%);
-            height: min(860px, 100%);
-            display: flex;
-            overflow: hidden;
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-l);
-        }
-        .frame > * { flex: 1; min-width: 0; }
-        @media (max-width: 880px) {
-            /* Phone: no card, no letterboxing — the app is the page. */
-            body { display: block; padding: 0; height: auto; }
-            .frame { width: 100%; height: auto; border: 0; border-radius: 0; }
-        }
-    </style>
 </head>
-<body>
-    <!-- Roughly the box a <sac-window> gives it on a desktop. With no host
-         calling mount(), sac.app.Element mounts the app itself. -->
-    <div class="frame"><app-color-bucket></app-color-bucket></div>
+<body class="app-page">
+    <!-- The harness plays desktop: a ribbon, a rail for the app to project
+         into, and a stage. With no host calling mount(), sac.app.Element
+         mounts the app itself — and its rail navigation works here too. -->
+    <sac-nav brand="HARNESS" app-name="COLOR BUCKET" brand-icon="palette"></sac-nav>
+    <div class="workspace">
+        <div class="main-layout">
+            <sac-sidebar></sac-sidebar>
+            <div class="app-stage">
+                <app-color-bucket></app-color-bucket>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

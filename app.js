@@ -136,12 +136,15 @@
         return "Custom";
     }
 
-    /* ------------------------------------------------------------- color --- */
-    const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-    const rgb2hex = (r) => "#" + r.map((v) =>
-        Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("").toUpperCase();
-    const s2l = (v) => (v /= 255) <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-    function luma(h) { const r = hex2rgb(h); return 0.2126 * s2l(r[0]) + 0.7152 * s2l(r[1]) + 0.0722 * s2l(r[2]); }
+    /* ------------------------------------------------------------- color ---
+       sac.color is the kit's colour math and the app uses nothing else for it.
+       parse/format/luma/onColor all lived here as private copies once, down to
+       the same 0.35 ink-flip threshold the kit had already picked and written
+       down. A rounding rule or a parsing tolerance belongs in one place. */
+    const rgbOf = (hex) => sac.color.parse(hex) || { r: 0, g: 0, b: 0, a: 1 };
+    const hexOf = (rgb) => sac.color.format(rgb).toUpperCase();
+    const inkOn = (hex) => sac.color.onColor(rgbOf(hex));
+    const lumaOf = (hex) => sac.color.luma(rgbOf(hex));
 
     /* The pots a shelf tints and shades with. Derived, not declared: several
        shelves have no white at all (Game Boy is four greens), and a shelf that
@@ -150,16 +153,10 @@
         const pots = shelfById(id).pots;
         let light = pots[0], dark = pots[0];
         for (const p of pots) {
-            if (luma(p.c) > luma(light.c)) light = p;
-            if (luma(p.c) < luma(dark.c)) dark = p;
+            if (lumaOf(p.c) > lumaOf(light.c)) light = p;
+            if (lumaOf(p.c) < lumaOf(dark.c)) dark = p;
         }
         return { white: light.c, dark: dark.c };
-    }
-
-    function parseHex(t) {
-        t = String(t).trim().replace(/^#/, "");
-        if (/^[0-9a-fA-F]{3}$/.test(t)) t = t.replace(/[0-9a-fA-F]/g, (c) => c + c);
-        return /^[0-9a-fA-F]{6}$/.test(t) ? "#" + t.toUpperCase() : null;
     }
 
     // spectral.Color objects are memoized per hex — the measured fast path,
@@ -174,9 +171,12 @@
         spectral.mix(...bs.map((b) => [spectralColor(b.c), Math.sqrt(b.w)])).toString().toUpperCase();
     function mixRGB(bs) {
         const tw = bs.reduce((a, b) => a + b.w, 0) || 1;
-        const out = [0, 0, 0];
-        for (const b of bs) { const rgb = hex2rgb(b.c); for (let i = 0; i < 3; i++) out[i] += rgb[i] * (b.w / tw); }
-        return rgb2hex(out);
+        const out = { r: 0, g: 0, b: 0 };
+        for (const b of bs) {
+            const c = rgbOf(b.c);
+            out.r += c.r * (b.w / tw); out.g += c.g * (b.w / tw); out.b += c.b * (b.w / tw);
+        }
+        return hexOf(out);
     }
 
     /* ------------------------------------------------------------ recipe ---
@@ -210,7 +210,8 @@
     };
 
     class AppColorBucket extends sac.app.Element {
-        /** Once, on first connect. Light DOM, so the kit's tokens apply. */
+        /** Once, on first connect. Light DOM, so the kit's components and its
+            stylesheet both reach the markup. */
         build() {
             sac.app.styles(BASE + "app.css", "app-color-bucket-css");
 
@@ -218,45 +219,54 @@
             this.mode = "pigment";
             this.shelf = "oils";
             this.palette = [];
-            this._potEls = [];
-            this._rowEls = [];
-            this._tabEls = [];
+            this._rows = [];
+            this._filled = Object.create(null);
+
+            /* One tab and one panel per shelf. The kit never re-renders a
+               panel — switching is two attribute flips — so a shelf keeps its
+               grid for the whole session. */
+            const tabs = SHELVES.map((s) =>
+                `<sac-tab name="${s.id}">${s.label}</sac-tab>`).join("");
+            const panels = SHELVES.map((s) =>
+                `<sac-tab-panel name="${s.id}">` +
+                `<sac-swatch-grid columns="8" data-shelf="${s.id}"></sac-swatch-grid>` +
+                `</sac-tab-panel>`).join("");
 
             this.innerHTML = `
                 <div class="cb-stage">
-                    <aside class="cb-recipe">
-                        <section>
-                            <p class="cb-label">Paint pots</p>
-                            <div class="cb-tabs" role="group" aria-label="Choose a paint box"></div>
-                            <div class="cb-pots"></div>
+                    <aside class="sidebar cb-side">
+                        <sac-section title="Paint pots">
+                            <sac-tab-group class="cb-shelves" active="${this.shelf}">
+                                ${tabs}${panels}
+                            </sac-tab-group>
                             <p class="cb-hint">Tap a pot to add a dab — tap again for another part.</p>
-                            <p class="cb-shelf-note" hidden></p>
-                        </section>
-                        <section>
-                            <p class="cb-label">Recipe</p>
-                            <div class="cb-buckets"></div>
-                            <button type="button" class="cb-add">+ Custom color</button>
-                        </section>
-                        <section>
-                            <p class="cb-label">Mixing mode</p>
-                            <div class="cb-modes" role="group" aria-label="Mixing mode">
-                                <button type="button" class="cb-pig" aria-pressed="true">Pigment</button>
-                                <button type="button" class="cb-rgb" aria-pressed="false">RGB</button>
-                            </div>
+                            <sac-status-banner class="cb-shelf-note"></sac-status-banner>
+                        </sac-section>
+
+                        <sac-section title="Recipe">
+                            <div class="cb-rows"></div>
+                            <button type="button" class="btn cb-add">+ Custom color</button>
+                        </sac-section>
+
+                        <sac-section title="Mixing mode">
+                            <sac-segmented-control class="cb-mode" value="${this.mode}">
+                                <button data-value="pigment">Pigment</button>
+                                <button data-value="rgb">RGB</button>
+                            </sac-segmented-control>
                             <p class="cb-note"></p>
-                        </section>
-                        <section class="cb-palette">
-                            <p class="cb-label">Palette</p>
-                            <div class="cb-swatches"></div>
+                        </sac-section>
+
+                        <sac-section title="Palette">
+                            <div class="empty-state cb-pal-empty">
+                                <p>Nothing here yet — mix something and save it.</p>
+                            </div>
+                            <sac-swatch-grid class="cb-pal-grid" columns="6" hidden></sac-swatch-grid>
                             <button type="button" class="btn cb-copy-pal" hidden>Copy all hex values</button>
-                        </section>
-                        <footer class="cb-colophon">
-                            Pigment mixing by <strong>spectral.js</strong> — MIT,
-                            © 2025 Ronald van Wijnen, whose reflectance curves follow
-                            Scott Allen Burns' LHTSS method. Kubelka-Munk theory:
-                            Paul Kubelka &amp; Franz Munk, 1931. Color Bucket is MIT.
-                        </footer>
+                        </sac-section>
+
+                        <button type="button" class="btn cb-about">About &amp; credits</button>
                     </aside>
+
                     <main class="cb-result" aria-live="polite">
                         <p class="cb-result-name">Your mix</p>
                         <h1 class="cb-hex">#000000</h1>
@@ -264,11 +274,14 @@
                             <button type="button" class="btn cb-copy-hex">Copy hex</button>
                             <button type="button" class="btn primary cb-to-pal">Save to palette</button>
                         </div>
-                        <div class="cb-compare"><span class="cb-cmp-chip"></span><span class="cb-cmp-text"></span></div>
+                        <div class="cb-compare">
+                            <sac-swatch class="cb-cmp-chip"></sac-swatch>
+                            <span class="cb-cmp-text"></span>
+                        </div>
                         <section class="cb-harmony" hidden>
                             <p class="cb-harm-title">A palette from these pigments</p>
-                            <div class="cb-harm-hues"></div>
-                            <div class="cb-harm-neutrals"></div>
+                            <sac-swatch-grid class="cb-harm-hues" columns="10"></sac-swatch-grid>
+                            <sac-swatch-grid class="cb-harm-neutrals" columns="10"></sac-swatch-grid>
                             <p class="cb-harm-foot">
                                 <span class="cb-harm-why"></span>
                                 <button type="button" class="btn cb-harm-add">Add all to palette</button>
@@ -286,14 +299,37 @@
             const restored = decodeRecipe(context.route);
             if (restored) { this.buckets = restored.buckets; this.mode = restored.mode; this.shelf = restored.shelf; }
 
-            this.buildTabs();
-            this.buildPots();
-            this.buildBuckets();
-            this.setMode(this.mode, true);
+            this.q(".cb-shelves").setAttribute("active", this.shelf);
+            this.fillShelf(this.shelf);
+            this.buildRows();
+            this.showNote();
+
+            /* A pot is not a selection, it is a dab: tapping the same pot again
+               has to add another part. sac-swatch-grid's selectable mode fires
+               only when the chosen swatch CHANGES — the right contract for a
+               picker and the wrong one here — so the grid stays plain and the
+               click is read off the light-DOM <sac-swatch>. */
+            this.q(".cb-shelves").addEventListener("click", (e) => {
+                const sw = e.target.closest("sac-swatch");
+                if (!sw || !this.contains(sw)) return;
+                const hex = String(sw.getAttribute("value") || "").toUpperCase();
+                const hit = this.buckets.filter((x) => x.c.toUpperCase() === hex)[0];
+                if (hit) { if (hit.w < 99) { hit.w++; this.refresh(); } }
+                else { this.buckets.push({ c: hex, w: 1 }); this.buildRows(); this.refresh(); }
+            });
+
+            this.q(".cb-shelves").addEventListener("sac:tab-show", (e) => {
+                this.shelf = e.detail.name;
+                this.fillShelf(this.shelf);
+                this.showNote();
+                this.refresh();
+            });
+
+            this.q(".cb-mode").addEventListener("change", (e) => this.setMode(e.detail));
 
             this.q(".cb-add").addEventListener("click", () => {
                 this.buckets.push({ c: "#D0342C", w: 1 });
-                this.buildBuckets(); this.refresh();
+                this.buildRows(); this.refresh();
             });
             this.q(".cb-copy-hex").addEventListener("click", () => this.copy(this.q(".cb-hex").textContent));
             this.q(".cb-to-pal").addEventListener("click", () => {
@@ -301,6 +337,8 @@
                 if (this.palette.indexOf(h) === -1) { this.palette.push(h); this.renderPalette(); this.savePalette(); }
             });
             this.q(".cb-copy-pal").addEventListener("click", () => this.copy(this.palette.join(", ")));
+            this.q(".cb-about").addEventListener("click", () => this.showAbout());
+
             this.q(".cb-harm-add").addEventListener("click", () => {
                 if (!this._harmony) return;
                 const before = this.palette.length;
@@ -316,34 +354,45 @@
             // be a copy rather than a retyping job.
             this.q(".cb-harm-css").addEventListener("click", () => {
                 if (!this._harmony || !window.cbHarmony) return;
-                const css = cbHarmony.toCSS(this._harmony);
-                this.copyRaw(css, "Copied the palette as CSS custom properties");
+                this.copyRaw(cbHarmony.toCSS(this._harmony),
+                    "Copied the palette as CSS custom properties");
             });
-            this.q(".cb-pig").addEventListener("click", () => this.setMode("pigment"));
-            this.q(".cb-rgb").addEventListener("click", () => this.setMode("rgb"));
+
+            // Every swatch outside the pots is a colour you might want to keep.
+            for (const cls of [".cb-pal-grid", ".cb-harm-hues", ".cb-harm-neutrals"]) {
+                this.q(cls).addEventListener("click", (e) => {
+                    const sw = e.target.closest("sac-swatch");
+                    if (sw) this.copy(String(sw.getAttribute("value")).toUpperCase());
+                });
+            }
 
             // A shared link opened while the app is already running.
             this._offRoute = context.onRoute((route) => {
                 const r = decodeRecipe(route);
                 if (!r || encodeRecipe(this.buckets, this.mode, this.shelf) === route) return;
                 this.buckets = r.buckets; this.mode = r.mode; this.shelf = r.shelf;
-                this.buildTabs(); this.buildPots(); this.buildBuckets(); this.setMode(this.mode, true);
+                this.q(".cb-shelves").setAttribute("active", this.shelf);
+                this.fillShelf(this.shelf);
+                this.buildRows();
+                this.setMode(this.mode, true);
+                this.showNote();
                 // setMode is silenced above so the mix is computed once, not
                 // twice — which means the refresh has to happen here. Without
                 // it the rows show the new recipe while the result, the pot
-                // badges and the palette still describe the old one.
+                // pills and the palette still describe the old one.
                 this.refresh();
             });
 
             this.loadPalette();
             this.renderPalette();
+            this.setMode(this.mode, true);
             this.refresh();
         }
 
         /** Undo exactly what onMount did. */
         onUnmount() {
             if (this._offRoute) { this._offRoute(); this._offRoute = null; }
-            clearTimeout(this._toastT);
+            if (this._dialog) { this._dialog.remove(); this._dialog = null; }
         }
 
         q(sel) { return this.querySelector(sel); }
@@ -357,10 +406,12 @@
                 const saved = await this._ctx.fs.read("palette.json", null);
                 const list = typeof saved === "string" ? JSON.parse(saved) : saved;
                 if (Array.isArray(list)) {
-                    this.palette = list.filter((h) => typeof h === "string" && parseHex(h));
+                    this.palette = list
+                        .filter((h) => typeof h === "string" && sac.color.parse(h))
+                        .map((h) => h.toUpperCase());
                     this.renderPalette();
                 }
-            } catch (e) { /* a corrupt palette is not worth failing the app over */ }
+            } catch (e) { /* an unreadable palette is not worth an error */ }
         }
 
         savePalette() {
@@ -368,166 +419,108 @@
             Promise.resolve(this._ctx.fs.write("palette.json", JSON.stringify(this.palette))).catch(() => {});
         }
 
-        /* ------------------------------------------------------ structure --
-           Structural builds run ONLY on add/remove, never on a value change:
-           rebuilding a row destroys its <input type="color">, and the browser
-           closes the native picker attached to it the instant it does. */
-        buildTabs() {
-            const box = this.q(".cb-tabs");
+        /* ------------------------------------------------------------ pots --
+           Grids are filled through the kit's .colors setter — the one bulk
+           rebuild sac-swatch-grid sanctions, and exactly the JS-driven case it
+           names. Lazily, because eleven shelves upfront is 176 elements nobody
+           has asked to see. */
+        fillShelf(id) {
+            if (this._filled[id]) return;
+            const grid = this.q('sac-swatch-grid[data-shelf="' + id + '"]');
+            if (!grid) return;
+            grid.colors = shelfById(id).pots.map((p) => ({ value: p.c, label: p.name }));
+            this._filled[id] = true;
+        }
+
+        /** The shelf's own small print, if it has any. Only RAL does. */
+        showNote() {
+            const banner = this.q(".cb-shelf-note");
+            const note = shelfById(this.shelf).note;
+            if (note) banner.show(note, "info"); else banner.hide();
+        }
+
+        /* ---------------------------------------------------------- recipe --
+           One row per pigment: the kit's colour field carries the well, the hex
+           input and the name; the stepper carries the parts. Both were
+           hand-built here once — and sac-stepper's own documentation gives
+           "paint-part counts" as its example. */
+        buildRows() {
+            const box = this.q(".cb-rows");
             box.textContent = "";
-            this._tabEls = SHELVES.map((s) => {
-                const b = document.createElement("button");
-                b.type = "button";
-                b.textContent = s.label;
-                b.setAttribute("aria-pressed", String(s.id === this.shelf));
-                b.addEventListener("click", () => {
-                    this.shelf = s.id;
-                    this._tabEls.forEach((t, j) => t.setAttribute("aria-pressed", String(SHELVES[j].id === this.shelf)));
-                    this.buildPots();
+            this._rows = this.buckets.map((b, i) => {
+                const row = document.createElement("div");
+                row.className = "cb-row";
+
+                const field = document.createElement("sac-color-field");
+                field.setAttribute("label", potName(b.c));
+                field.setAttribute("value", b.c);
+                field.addEventListener("sac:color-change", (e) => {
+                    b.c = String(e.detail.value).toUpperCase();
+                    field.setAttribute("label", potName(b.c));
                     this.refresh();
                 });
-                box.appendChild(b);
-                return b;
-            });
-        }
 
-        buildPots() {
-            const shelf = shelfById(this.shelf);
-            const box = this.q(".cb-pots");
-            box.textContent = "";
-            box.classList.toggle("cb-pots-few", shelf.pots.length <= 8);
-
-            // Shelf-specific small print — currently only RAL, which needs a
-            // trademark note to keep using the name.
-            const note = this.q(".cb-shelf-note");
-            note.textContent = shelf.note || "";
-            note.hidden = !shelf.note;
-
-            this._potEls = shelf.pots.map((p) => {
-                const b = document.createElement("button");
-                b.type = "button";
-                b.className = "cb-pot";
-                b.style.background = p.c;
-                b.title = p.name;
-                b.setAttribute("aria-label", p.name + " — add a dab");
-                b.addEventListener("click", () => {
-                    const hit = this.buckets.filter((x) => x.c.toUpperCase() === p.c.toUpperCase())[0];
-                    if (hit) { if (hit.w < 99) { hit.w++; this.refresh(); } }
-                    else { this.buckets.push({ c: p.c, w: 1 }); this.buildBuckets(); this.refresh(); }
-                });
-                box.appendChild(b);
-                return { el: b, hex: p.c };
-            });
-        }
-
-        buildBuckets() {
-            const box = this.q(".cb-buckets");
-            box.textContent = "";
-            this._rowEls = this.buckets.map((b, i) => {
-                const row = document.createElement("div");
-                row.className = "cb-bucket";
-
-                const chip = document.createElement("span");
-                chip.className = "cb-chip";
-                const color = document.createElement("input");
-                color.type = "color";
-                color.value = b.c;
-                color.setAttribute("aria-label", "Pick color " + (i + 1));
-                chip.appendChild(color);
-
-                const name = document.createElement("span");
-                name.className = "cb-bname";
-                const nm = document.createElement("span");
-                const hexIn = document.createElement("input");
-                hexIn.className = "cb-hex-in";
-                hexIn.type = "text";
-                hexIn.value = b.c.toUpperCase();
-                hexIn.spellcheck = false;
-                hexIn.autocomplete = "off";
-                hexIn.maxLength = 7;
-                hexIn.setAttribute("aria-label", "Hex value for color " + (i + 1));
-                name.appendChild(nm);
-                name.appendChild(hexIn);
-
-                const parts = document.createElement("span");
-                parts.className = "cb-parts";
-                const minus = document.createElement("button");
-                minus.type = "button"; minus.textContent = "−";
-                minus.setAttribute("aria-label", "Fewer parts");
-                const n = document.createElement("span");
-                n.className = "cb-n";
-                const plus = document.createElement("button");
-                plus.type = "button"; plus.textContent = "+";
-                plus.setAttribute("aria-label", "More parts");
-                parts.append(minus, n, plus);
+                const parts = document.createElement("sac-stepper");
+                parts.setAttribute("value", String(b.w));
+                parts.setAttribute("min", "1");
+                parts.setAttribute("max", "99");
+                parts.setAttribute("unit", "parts");
+                parts.setAttribute("label", "Parts of " + potName(b.c));
+                parts.addEventListener("sac:change", (e) => { b.w = e.detail.value; this.refresh(); });
 
                 const del = document.createElement("button");
-                del.className = "cb-del"; del.type = "button"; del.textContent = "×";
-                del.setAttribute("aria-label", "Remove color");
-
-                color.addEventListener("input", (e) => { b.c = e.target.value.toUpperCase(); this.refresh(); });
-                hexIn.addEventListener("input", () => { const v = parseHex(hexIn.value); if (v) { b.c = v; this.refresh(); } });
-                hexIn.addEventListener("change", () => { hexIn.value = b.c.toUpperCase(); });
-                hexIn.addEventListener("keydown", (e) => { if (e.key === "Enter") hexIn.blur(); });
-                minus.addEventListener("click", () => { if (b.w > 1) { b.w--; this.refresh(); } });
-                plus.addEventListener("click", () => { if (b.w < 99) { b.w++; this.refresh(); } });
+                del.type = "button";
+                del.className = "btn cb-del";
+                del.textContent = "×";
+                del.setAttribute("aria-label", "Remove " + potName(b.c));
+                del.disabled = this.buckets.length < 2;
                 del.addEventListener("click", () => {
-                    if (this.buckets.length > 1) {
-                        this.buckets.splice(this.buckets.indexOf(b), 1);
-                        this.buildBuckets(); this.refresh();
-                    }
+                    if (this.buckets.length < 2) return;
+                    this.buckets.splice(i, 1);
+                    this.buildRows(); this.refresh();
                 });
 
-                row.append(chip, name, parts, del);
+                row.append(field, parts, del);
                 box.appendChild(row);
-                return { chip, color, nm, hexIn, n };
+                return { row, field, parts, del };
             });
         }
 
         renderPalette() {
-            const box = this.q(".cb-swatches");
-            box.textContent = "";
-            if (!this.palette.length) {
-                const empty = document.createElement("span");
-                empty.className = "cb-pal-empty";
-                empty.textContent = "Nothing here yet — mix something and save it.";
-                box.appendChild(empty);
-            }
-            for (const h of this.palette) {
-                const b = document.createElement("button");
-                b.type = "button";
-                b.className = "cb-sw";
-                b.style.background = h;
-                b.title = "Copy " + h;
-                b.setAttribute("aria-label", "Copy " + h);
-                b.addEventListener("click", () => this.copy(h));
-                box.appendChild(b);
-            }
+            const grid = this.q(".cb-pal-grid");
+            grid.colors = this.palette.map((h) => ({ value: h, label: "Copy " + h }));
+            grid.hidden = !this.palette.length;
+            this.q(".cb-pal-empty").hidden = !!this.palette.length;
             this.q(".cb-copy-pal").hidden = !this.palette.length;
         }
 
         setMode(m, silent) {
             this.mode = m;
-            this.q(".cb-pig").setAttribute("aria-pressed", String(m === "pigment"));
-            this.q(".cb-rgb").setAttribute("aria-pressed", String(m === "rgb"));
+            const seg = this.q(".cb-mode");
+            if (seg.getAttribute("value") !== m) seg.setAttribute("value", m);
             this.q(".cb-note").textContent = NOTE[m];
             if (!silent) this.refresh();
         }
 
         /** In-place value refresh — never touches DOM structure. */
         refresh() {
-            for (const p of this._potEls) {
-                const hit = this.buckets.filter((x) => x.c.toUpperCase() === p.hex.toUpperCase())[0];
-                if (hit) p.el.setAttribute("data-n", hit.w); else p.el.removeAttribute("data-n");
+            const grid = this.q('sac-swatch-grid[data-shelf="' + this.shelf + '"]');
+            if (grid) {
+                for (const sw of grid.children) {
+                    const hex = String(sw.getAttribute("value") || "").toUpperCase();
+                    const hit = this.buckets.filter((x) => x.c.toUpperCase() === hex)[0];
+                    // count is the kit's corner pill, and "3 parts of this pot"
+                    // is a count — the pill doing its job, not a borrowed one.
+                    if (hit) sw.setAttribute("count", String(hit.w)); else sw.removeAttribute("count");
+                }
             }
+
             this.buckets.forEach((b, i) => {
-                const r = this._rowEls[i];
+                const r = this._rows[i];
                 if (!r) return;
-                r.chip.style.background = b.c;
-                if (r.color.value.toUpperCase() !== b.c.toUpperCase()) r.color.value = b.c;
-                r.nm.textContent = potName(b.c);
-                if (document.activeElement !== r.hexIn) r.hexIn.value = b.c.toUpperCase();
-                r.n.textContent = b.w + (b.w === 1 ? " part" : " parts");
+                if (String(r.field.value || "").toUpperCase() !== b.c.toUpperCase()) r.field.value = b.c;
+                if (Number(r.parts.value) !== b.w) r.parts.value = b.w;
+                r.del.disabled = this.buckets.length < 2;
             });
 
             const main = this.mode === "pigment" ? mixPigment(this.buckets) : mixRGB(this.buckets);
@@ -535,10 +528,13 @@
             const result = this.q(".cb-result");
             result.style.background = main;
             // Contrast against a data colour, not against a theme — the mix can
-            // be anything, so the ink is computed rather than tokenised.
-            result.style.color = luma(main) > 0.35 ? "#181711" : "#F4F2EC";
+            // be anything, so the ink comes from sac.color.onColor rather than
+            // from a token that cannot know what it is sitting on.
+            result.style.color = inkOn(main);
             this.q(".cb-hex").textContent = main;
-            this.q(".cb-cmp-chip").style.background = other;
+            const chip = this.q(".cb-cmp-chip");
+            chip.setAttribute("value", other);
+            chip.setAttribute("label", other);
             this.q(".cb-cmp-text").textContent =
                 (this.mode === "pigment" ? "What RGB would give you: " : "What pigment would give you: ") + other;
 
@@ -578,37 +574,42 @@
             box.hidden = !built;
             if (!built) return;
 
-            this.syncSwatches(this.q(".cb-harm-hues"), built.hues, "cb-hsw", false);
-            this.syncSwatches(this.q(".cb-harm-neutrals"), built.neutrals, "cb-nsw", true);
+            this.q(".cb-harm-hues").colors =
+                built.hues.map((h) => ({ value: h.hex, label: h.label }));
+            // The ramp step rides in `count`: the pill is a small corner label,
+            // and "500" is exactly what has to stay readable on the swatch for
+            // these to be usable as tokens.
+            this.q(".cb-harm-neutrals").colors = built.neutrals.map((n) =>
+                ({ value: n.hex, label: n.label + " — " + n.hex, count: n.label }));
             this.q(".cb-harm-why").textContent =
                 built.sources.length + " pigments · every colour mixed from them";
         }
 
-        /** Reconcile in place. Wiping and rebuilding these on every refresh
-            would be the same mistake as rebuilding the recipe rows: refresh()
-            runs on `input`, and churning DOM during a drag is what closes the
-            native colour picker. Only the count ever changes structure. */
-        syncSwatches(box, items, cls, captioned) {
-            // lastElementChild, not lastChild: removing a stray text node would
-            // not shrink .children, and the loop would never end.
-            while (box.children.length > items.length) box.removeChild(box.lastElementChild);
-            while (box.children.length < items.length) {
-                const b = document.createElement("button");
-                b.type = "button";
-                b.className = cls;
-                b.appendChild(document.createElement("span"));
-                if (captioned) b.appendChild(document.createElement("small"));
-                b.addEventListener("click", () => this.copy(b.dataset.hex));
-                box.appendChild(b);
-            }
-            items.forEach((it, i) => {
-                const b = box.children[i];
-                b.dataset.hex = it.hex;
-                b.firstChild.style.background = it.hex;
-                if (captioned) b.lastChild.textContent = it.label;
-                b.title = it.label + " — " + it.hex;
-                b.setAttribute("aria-label", "Copy " + it.hex + ", " + it.label);
+        /* Third-party notices belong in the repo and behind a deliberate click,
+           never parked permanently at the foot of the app. */
+        showAbout() {
+            const dlg = document.createElement("sac-dialog");
+            dlg.setAttribute("title", "Color Bucket");
+            dlg.buttons = [{ action: "close", label: "Close", kind: "default" }];
+            const body = document.createElement("div");
+            body.className = "cb-about-body";
+            body.innerHTML =
+                "<p>Mix colors like paint, not like numbers. Built on SACRVM APPKIT.</p>" +
+                "<p><strong>Pigment mixing:</strong> spectral.js — MIT licence, © 2025 " +
+                "Ronald van Wijnen. Its reflectance curves follow Scott Allen Burns' " +
+                "LHTSS method. Kubelka-Munk theory: Paul Kubelka &amp; Franz Munk, 1931.</p>" +
+                "<p><strong>RAL shelf:</strong> “RAL” is a registered trademark of RAL gGmbH, " +
+                "which is not affiliated with this app. Those values are common sRGB " +
+                "approximations, not colour standards.</p>" +
+                "<p>Color Bucket is MIT licensed. The full notices ship in LICENSE.</p>";
+            dlg.append(body);
+            document.body.appendChild(dlg);
+            dlg.addEventListener("sac-dialog:action", () => {
+                dlg.remove();
+                if (this._dialog === dlg) this._dialog = null;
             });
+            this._dialog = dlg;
+            dlg.open();
         }
 
         /** Copies a colour and says so by showing it — the value is short. */
@@ -635,21 +636,10 @@
             done();
         }
 
-        // sac.toast is the host's and optional: never assume chrome.
-        /** Takes the finished message: not everything worth announcing is a copy. */
+        /** sac.toast ships with the kit but is still the host's to provide —
+            guard it rather than assume it, and never hand-roll a second one. */
         toast(message) {
-            if (typeof sac.toast === "function") { sac.toast(message, { kind: "success" }); return; }
-            let el = this.q(".cb-toast");
-            if (!el) {
-                el = document.createElement("div");
-                el.className = "cb-toast";
-                el.setAttribute("role", "status");
-                this.appendChild(el);
-            }
-            el.textContent = message;
-            el.classList.add("on");
-            clearTimeout(this._toastT);
-            this._toastT = setTimeout(() => el.classList.remove("on"), 1400);
+            if (typeof sac.toast === "function") sac.toast(message, { kind: "success" });
         }
     }
 

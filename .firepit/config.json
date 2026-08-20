@@ -3,6 +3,34 @@
   "id": "color-bucket",
   "commands": [
     {
+      "name": "Serve",
+      "type": "Shell",
+      "icon": "\uD83D\uDE80",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "serve",
+        ".",
+        "-l",
+        "3100"
+      ],
+      "window": "reuse:serve",
+      "longRunning": true
+    },
+    {
+      "name": "Open App",
+      "type": "Url",
+      "icon": "\uD83C\uDFA8",
+      "url": "http://localhost:3100/"
+    },
+    {
+      "name": "Harmony",
+      "type": "Url",
+      "icon": "\uD83C\uDF08",
+      "url": "http://localhost:3100/#/F2C500x2,D93A2Bx1,1F3A93x1;pigment;oils"
+    },
+    {
       "name": "Tests",
       "type": "Shell",
       "icon": "\uD83E\uDDEA",
@@ -11,30 +39,6 @@
         "-NoExit",
         "-Command",
         "npm test"
-      ],
-      "window": "new"
-    },
-    {
-      "name": "Proof",
-      "type": "Shell",
-      "icon": "\uD83D\uDCD0",
-      "command": "powershell",
-      "args": [
-        "-NoExit",
-        "-Command",
-        "npm run proof"
-      ],
-      "window": "new"
-    },
-    {
-      "name": "Eval",
-      "type": "Shell",
-      "icon": "\uD83D\uDD2C",
-      "command": "powershell",
-      "args": [
-        "-NoExit",
-        "-Command",
-        "node eval/spectral-eval.js"
       ],
       "window": "new"
     }

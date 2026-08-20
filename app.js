@@ -407,6 +407,9 @@
             // harness has no router — and onUnmount undoes exactly what
             // onMount did, wherever it is running.
             if (sac.toolbar) sac.toolbar.clear();
+            // The About window lives on document.body, outside this element,
+            // so nothing else would take it away.
+            if (this._about) { this._about.remove(); this._about = null; }
         }
 
         q(sel) { return this.querySelector(sel); }
@@ -616,31 +619,37 @@
 
         /* Third-party notices belong in the repo and behind a deliberate
            click, never parked permanently in the app's chrome.
-           sac.dialog.confirm builds the element, waits for the answer, removes
-           it and resolves — all of which this app did by hand once. Guarded
-           the way notes guards it, because an app must survive a host that
-           brings no dialog at all. */
-        showAbout() {
-            const text = [
-                "Mix colors like paint, not like numbers. Built on SACRVM APPKIT.",
-                "Pigment mixing: spectral.js — MIT licence, © 2025 Ronald van Wijnen. "
-                    + "Its reflectance curves follow Scott Allen Burns' LHTSS method. "
-                    + "Kubelka-Munk theory: Paul Kubelka & Franz Munk, 1931.",
-                "RAL shelf: “RAL” is a registered trademark of RAL gGmbH, which is "
-                    + "not affiliated with this app. Those values are common sRGB "
-                    + "approximations, not colour standards.",
-                "Color Bucket is MIT licensed. The full notices ship in LICENSE.",
-            ].join("\n\n");
 
-            if (sac.dialog && typeof sac.dialog.confirm === "function") {
-                sac.dialog.confirm({
-                    title: "Color Bucket",
-                    message: text,
-                    buttons: [{ action: "close", label: "Close", kind: "default" }],
-                });
-                return;
+           A <sac-window>, not a dialog: a dialog is modal and exists to ask a
+           question, and sac.dialog.confirm takes one string as textContent, so
+           four paragraphs of licence text collapse into one block. A window
+           takes light-DOM children, stays out of the way, and can be left open
+           while you keep mixing. Created once and reopened, the way the style
+           guide demonstrates. */
+        showAbout() {
+            let win = this._about;
+            if (!win) {
+                win = document.createElement("sac-window");
+                win.className = "cb-about";
+                win.setAttribute("title", "Color Bucket");
+                win.setAttribute("controls", "close");
+                win.setAttribute("no-resize", "");
+                win.setAttribute("width", "440px");
+                win.innerHTML =
+                    "<p>Mix colors like paint, not like numbers. Built on SACRVM APPKIT.</p>" +
+                    "<p><b>Pigment mixing:</b> spectral.js — MIT licence, © 2025 " +
+                    "Ronald van Wijnen. Its reflectance curves follow Scott Allen Burns' " +
+                    "LHTSS method. Kubelka-Munk theory: Paul Kubelka &amp; Franz Munk, 1931.</p>" +
+                    "<p><b>RAL shelf:</b> “RAL” is a registered trademark of " +
+                    "RAL gGmbH, which is not affiliated with this app. Those values are " +
+                    "common sRGB approximations, not colour standards.</p>" +
+                    "<p>Color Bucket is MIT licensed. The full notices ship in LICENSE.</p>";
+                document.body.appendChild(win);
+                this._about = win;
             }
-            window.alert(text);
+            if (win.hasAttribute("minimized")) win.restore();
+            win.open();
+            win.bringToFront();
         }
 
         /** Copies a colour and says so by showing it — the value is short. */

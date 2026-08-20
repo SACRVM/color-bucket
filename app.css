@@ -22,6 +22,14 @@ app-color-bucket {
     line-height: 1.5;
 }
 
+/* The kit's .btn sets display:flex, which is an author rule and therefore
+   beats the user-agent rule behind the `hidden` attribute — so a button the
+   app hides stays on screen. Restoring the attribute's meaning once, for the
+   whole app, is safer than remembering it at every call site: the palette's
+   "Copy all hex values" shipped visible above an empty palette because of
+   exactly this. */
+app-color-bucket [hidden] { display: none !important; }
+
 app-color-bucket .cb-stage {
     display: grid;
     grid-template-columns: 400px 1fr;

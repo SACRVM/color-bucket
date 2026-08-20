@@ -633,8 +633,6 @@
                 win.className = "cb-about";
                 win.setAttribute("title", "Color Bucket");
                 win.setAttribute("controls", "close");
-                win.setAttribute("no-resize", "");
-                win.setAttribute("width", "440px");
                 win.innerHTML =
                     "<p>Mix colors like paint, not like numbers. Built on SACRVM APPKIT.</p>" +
                     "<p><b>Pigment mixing:</b> spectral.js — MIT licence, © 2025 " +
@@ -647,6 +645,20 @@
                 document.body.appendChild(win);
                 this._about = win;
             }
+            /* Fitted to the viewport at open time, not to a number typed
+               once: a fixed 520x380 is fine on a big screen and hangs off the
+               top and bottom of a small one. The kit clamps the TITLE BAR back
+               into reach, which keeps a window draggable but does not stop the
+               body from running off the edges. 96px of margin leaves the nav
+               ribbon clear. */
+            const vw = window.innerWidth, vh = window.innerHeight;
+            win.setAttribute("width", Math.max(300, Math.min(520, vw - 80)) + "px");
+            win.setAttribute("height", Math.max(200, Math.min(400, vh - 160)) + "px");
+            if (!win.hasAttribute("open")) {
+                win.setAttribute("left", Math.round(Math.max(20, (vw - 520) / 2)) + "px");
+                win.setAttribute("top", Math.round(Math.max(70, (vh - 400) / 2)) + "px");
+            }
+
             if (win.hasAttribute("minimized")) win.restore();
             win.open();
             win.bringToFront();

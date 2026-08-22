@@ -36,12 +36,13 @@
     <!-- The harness plays desktop: a ribbon, a rail for the app to project
          into, and a stage. With no host calling mount(), sac.app.Element
          mounts the app itself — and its rail navigation works here too. -->
-    <!-- No brand: the brand segment is the HOST's, and standalone there is no
-         host (sac-nav's own docs: host null/absent renders nothing). The
+    <!-- No brand TEXT: the brand words are the HOST's, and standalone there is
+         no host (sac-nav's own docs: host null/absent renders nothing). The
          template ships brand="HARNESS" as a placeholder; carrying that into a
          real app would put a name in the ribbon that nothing stands behind.
-         app-name is the app's own and stays. -->
-    <sac-nav app-name="COLOR BUCKET"></sac-nav>
+         The ICON is a different matter — it is the app's own mark, and it went
+         out with the placeholder by mistake. app-name and brand-icon stay. -->
+    <sac-nav app-name="COLOR BUCKET" brand-icon="palette"></sac-nav>
     <div class="workspace">
         <div class="main-layout">
             <sac-sidebar></sac-sidebar>

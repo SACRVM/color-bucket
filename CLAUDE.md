@@ -56,8 +56,23 @@ desktop reads), `app.js` (one custom element, one classic script), `app.css`,
   result plane are painted from **data**, and the two buttons on the result
   plane inherit `currentColor` because no token can be trusted to contrast
   against an arbitrary mixed color.
-- **Don't vendor the kit.** The host provides it; `index.html` borrows it from
-  the appkit's Pages purely so the app can run alone.
+- **Vendor the kit, and never edit it.** Autark since 2026-08-22: `kit/` is a
+  verbatim release copy (`kit/VERSION` — currently **2.1.1**) and `index.html`
+  links it locally. No CDN. Upgrading is *delete `kit/`, unzip the new release*,
+  so a local edit is the one thing that breaks the model; fixes belong in the
+  appkit and come back in the next release.
+  **One approved exception, and it is temporary.** 2.1.1 ships a commented-out
+  example in `kit/templates/shell.html` carrying a retired personal name. This
+  repo is public and `.githooks/pre-commit` refuses it — correctly. The owner
+  approved changing that one word locally (2026-08-22) so the adoption could
+  land; the appkit is fixing it at the source, and the next re-vendor drops the
+  deviation on its own. Do not treat this as licence to edit anything else
+  under `kit/`.
+- **Two kits, not one.** Opened by a desktop, the app runs against the
+  *desktop's* kit: `sac.apps` injects `app.js` into the desktop's own page, so
+  this repo's `index.html` is never loaded. A vendored copy governs standalone
+  only — keep both on the same version. Match the desktop, not the newest tag:
+  the desktop is on **2.1.1**, which is why this repo is too.
 - **The kit's API only.** Never reach into a component's shadow root or
   private fields. Anything on `sac` beyond `sac.app` belongs to the host and
   is optional — guard it (`typeof sac.toast === "function"`).

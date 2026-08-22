@@ -6,11 +6,17 @@
     <title>Color Bucket</title>
 
     <!-- The harness: the app alone, no desktop, F5 to develop.
-         An app does NOT vendor the kit — its host provides it. Here the host
-         is this page, so it borrows the kit from the appkit's own site. Swap
-         this for a local path if you keep a copy. -->
-    <link rel="stylesheet" href="https://sacrvm.github.io/sacrvm-appkit/kit/css/ui.css">
-    <script defer src="https://sacrvm.github.io/sacrvm-appkit/kit/js/all.js"></script>
+         Autark (decided 2026-08-22): the app carries its own verbatim kit
+         release under kit/, linked locally, no CDN. kit/VERSION names it.
+         Upgrading is "delete kit/, unzip the new release" — never edit
+         anything under kit/ (one owner-approved exception is recorded in
+         CLAUDE.md, and the next release removes the need for it).
+         This governs STANDALONE only: opened by a desktop, the app runs
+         against the DESKTOP's kit, because sac.apps injects app.js into the
+         desktop's own page and this file is never loaded. Keep the two on the
+         same version and that difference never bites. -->
+    <link rel="stylesheet" href="kit/css/ui.css">
+    <script defer src="kit/js/all.js"></script>
 
     <script defer>
         // The app is injected AFTER the kit — exactly what a desktop does

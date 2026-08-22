@@ -328,7 +328,10 @@
                 this.refresh();
             });
 
-            this.q(".cb-mode").addEventListener("change", (e) => this.setMode(e.detail));
+            // Kit 2.0.0 unified value events: a kit component emits sac:change
+            // with detail { value }, never a native `change`, and the value is
+            // no longer the detail itself.
+            this.q(".cb-mode").addEventListener("sac:change", (e) => this.setMode(e.detail.value));
 
             this.q(".cb-add").addEventListener("click", () => {
                 this.buckets.push({ c: "#D0342C", w: 1 });
@@ -482,7 +485,9 @@
 
                 const field = document.createElement("sac-color-field");
                 field.setAttribute("value", b.c);
-                field.addEventListener("sac:color-change", (e) => {
+                // sac:color-change folded into the unified sac:change in 2.0.0;
+                // the detail.value read below was already right.
+                field.addEventListener("sac:change", (e) => {
                     b.c = String(e.detail.value).toUpperCase();
                     name.textContent = potName(b.c);
                     parts.setAttribute("label", "Parts of " + potName(b.c));

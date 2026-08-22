@@ -238,7 +238,9 @@ pigment answer is the correct one.
 | `app.js` | The app: one custom element, one classic script |
 | `app.css` | App styles — kit tokens only, one `--accent` seed |
 | `index.html` | Standalone harness: the app alone, no desktop, F5 to develop |
+
 | `lib/harmony.js` | The limited-palette generator. Engine-agnostic — the mixer is injected, so the tests drive it with the real engine |
+| `kit/` | The vendored SACRVM APPKIT release, verbatim — `kit/VERSION` names it (2.1.1). Autark since 2026-08-22: no CDN, and the app runs offline. Never edit anything in here; upgrading is delete-and-unzip. Governs standalone only — opened by a desktop, the app runs against the desktop's kit |
 | `vendor/spectral.min.js` | The mixing engine, vendored. `vendor/package.json` scopes it as CommonJS so Node tests load the exact file the browser gets; `lib/package.json` does the same for our own code |
 
 **No build step.** `npx serve .` and F5 is the whole dev loop; every push to

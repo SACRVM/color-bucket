@@ -24,19 +24,22 @@ app-color-bucket {
     color: var(--text);
 }
 
+/* Standalone the element sits directly in <body class="app-page">, a flex
+   column — the same size it gets from a desktop's stage. */
+body.app-page > app-color-bucket { flex: 1; min-height: 0; }
+
 /* The kit's .btn sets display:flex, an author rule, which beats the
    user-agent rule behind the `hidden` attribute — so a button the app hides
    stays on screen. ui.css says the same out loud for .sac-app-view; this is
    the same fix for everything the app hides. */
 app-color-bucket [hidden] { display: none !important; }
 
-/* ----------------------------------------------------------------- stage -- */
-app-color-bucket .cb-stage {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    height: 100%;
-    min-height: 0;
-}
+/* ----------------------------------------------------------------- stage --
+   .main-layout is the kit's: a flex row that already clears the fixed 50px
+   ribbon the app now draws itself. All this adds is the height it has to
+   fill, which is what the app template does too. .cb-stage is only a handle
+   for the responsive rule at the foot of this file. */
+app-color-bucket .main-layout { height: 100%; }
 
 /* .sidebar is the kit's rail: panel background, border, padding, scrolling.
    Only the width is ours — eight pots to a row need more than the kit's
@@ -46,11 +49,39 @@ app-color-bucket .cb-side {
     gap: 0;
 }
 
-app-color-bucket .cb-hint,
-app-color-bucket .cb-note {
-    margin: 8px 0 0;
-    font-size: 12px;
+/* Three groups of ribbon buttons — history, palette, files — reading as one
+   undivided row of ten. A hairline on the kit's border token, no glyph. */
+app-color-bucket .cb-tsep {
+    align-self: center;
+    width: 1px;
+    height: 18px;
+    margin: 0 2px;
+    background: var(--border);
+}
+
+/* ui.css states :disabled for .btn but not for .nav-icon-btn, and the palette
+   buttons are unarmed until a swatch is chosen. Same values as .btn:disabled
+   so the two kinds of button cannot drift apart. */
+app-color-bucket .nav-icon-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+app-color-bucket .nav-icon-btn:disabled:hover {
+    background: none;
     color: var(--text-muted);
+    transform: none;
+}
+
+/* The file intake is used for its plumbing, not its surface: off screen but
+   still rendered, because a display:none subtree can swallow the picker click
+   that browse() fires. */
+app-color-bucket .cb-file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    pointer-events: none;
 }
 
 /* ---------------------------------------------------------------- recipe --
@@ -102,6 +133,9 @@ app-color-bucket .cb-del:hover:not(:disabled) {
    not its chrome: a token here would be a token asked to contrast against a
    colour nobody can predict. */
 app-color-bucket .cb-result {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -211,18 +245,26 @@ app-color-bucket .cb-harm-why {
 
 /* ------------------------------------------------------------ responsive -- */
 @media (max-width: 880px) {
+    /* One column, and the whole stage scrolls instead of each half. */
     app-color-bucket .cb-stage {
-        grid-template-columns: 1fr;
-        grid-template-rows: minmax(38vh, auto) 1fr;
-        height: auto;
+        flex-direction: column;
+        overflow-y: auto;
     }
     app-color-bucket .cb-result {
         order: -1;
         position: sticky;
         top: 0;
         z-index: 5;
+        flex: none;
+        min-height: 38vh;
+        overflow: visible;
     }
-    app-color-bucket .cb-side { width: auto; border-right: 0; border-top: 1px solid var(--border); }
+    app-color-bucket .cb-side {
+        width: auto;
+        border-right: 0;
+        border-top: 1px solid var(--border);
+        overflow: visible;
+    }
     app-color-bucket .cb-compare { position: static; transform: none; margin-top: 6px; }
     /* The result plane is sticky here, so every pixel it gains is a pixel the
        recipe loses. Harmony stays, at a size that does not take the screen. */

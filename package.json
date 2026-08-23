@@ -1,6 +1,6 @@
 {
   "name": "color-bucket",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Mix colors like paint, not like numbers — spectral pigment mixing on SACRVM APPKIT",
   "type": "module",
   "private": true,

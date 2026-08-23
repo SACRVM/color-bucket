@@ -57,22 +57,32 @@ desktop reads), `app.js` (one custom element, one classic script), `app.css`,
   plane inherit `currentColor` because no token can be trusted to contrast
   against an arbitrary mixed color.
 - **Vendor the kit, and never edit it.** Autark since 2026-08-22: `kit/` is a
-  verbatim release copy (`kit/VERSION` — currently **2.1.1**) and `index.html`
+  verbatim release copy (`kit/VERSION` — currently **2.1.2**) and `index.html`
   links it locally. No CDN. Upgrading is *delete `kit/`, unzip the new release*,
   so a local edit is the one thing that breaks the model; fixes belong in the
   appkit and come back in the next release.
-  **One approved exception, and it is temporary.** 2.1.1 ships a commented-out
-  example in `kit/templates/shell.html` carrying a retired personal name. This
-  repo is public and `.githooks/pre-commit` refuses it — correctly. The owner
-  approved changing that one word locally (2026-08-22) so the adoption could
-  land; the appkit is fixing it at the source, and the next re-vendor drops the
-  deviation on its own. Do not treat this as licence to edit anything else
-  under `kit/`.
+  **There is no local deviation any more.** 2.1.1 shipped a commented-out
+  example in `kit/templates/shell.html` carrying a retired personal name, which
+  `.githooks/pre-commit` refuses — correctly, this repo is public. That one word
+  was changed locally with the owner's approval; 2.1.2 removed the name at the
+  source, so the 2.1.2 copy is verbatim again. `kit/` is untouchable.
+  **Verify a re-vendor, do not assume it.** Diff the vendored tree against the
+  release with line endings normalised (`diff --strip-trailing-cr`) — CRLF makes
+  every file look changed and hides the handful that really are. The 2.1.2
+  upgrade was four files. And read what you are copying in: the appkit working
+  tree carried a stray `bash.exe.stackdump` under `kit/js/lib/` on 2.1.2, and a
+  blind copy would have vendored a crash dump.
 - **Two kits, not one.** Opened by a desktop, the app runs against the
   *desktop's* kit: `sac.apps` injects `app.js` into the desktop's own page, so
   this repo's `index.html` is never loaded. A vendored copy governs standalone
-  only — keep both on the same version. Match the desktop, not the newest tag:
-  the desktop is on **2.1.1**, which is why this repo is too.
+  only, so the two are meant to stay on the same version.
+  **Right now they are not, deliberately.** This repo is on **2.1.2**, the
+  desktop is still on **2.1.1** (owner's call, 2026-08-23): 2.1.2 is nothing but
+  the four fixes this app asked for. The price is that anything 2.1.2 introduced
+  is absent on the desktop, so the app must not *depend* on it — which is why
+  `sac-section::part(title)` is deliberately unused even though it now exists.
+  Use nothing from 2.1.2 that the app cannot do without until the desktop
+  follows.
 - **The kit's API only.** Never reach into a component's shadow root or
   private fields. Anything on `sac` beyond `sac.app` belongs to the host and
   is optional — guard it (`typeof sac.toast === "function"`).

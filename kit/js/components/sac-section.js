@@ -3,10 +3,14 @@
  *   …controls…
  * </sac-section>
  *
- * Sidebar group separator with uppercase title + thin border.
+ * Sidebar group separator: uppercase title + thin underline.
  *
  * Attributes:
- *   title — uppercase heading text.
+ *   title — uppercase heading text. Rendered at --text-muted (real secondary
+ *           information, AA on every plane), not the tertiary --text-dim.
+ *
+ * CSS parts (style from the light DOM, e.g. sac-section::part(title) { … }):
+ *   title — the heading.   body — the slotted content wrapper.
  */
 class SacSection extends HTMLElement {
     static get observedAttributes() { return ["title"]; }
@@ -21,6 +25,9 @@ class SacSection extends HTMLElement {
 
     render() {
         const title = this.getAttribute("title") || "";
+        // Escape: the heading is injected into innerHTML, and an app may set it
+        // from dynamic data (a user-named group). Same rule as the rest of the kit.
+        const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
         this.shadowRoot.innerHTML = `
             <style>
                 :host {
@@ -32,7 +39,7 @@ class SacSection extends HTMLElement {
                     font-size: 0.7rem;
                     font-weight: 700;
                     letter-spacing: 0.1em;
-                    color: var(--text-dim);
+                    color: var(--text-muted);
                     text-transform: uppercase;
                     margin-bottom: 0.75rem;
                     padding-bottom: 0.5rem;
@@ -44,8 +51,8 @@ class SacSection extends HTMLElement {
                     gap: 0.5rem;
                 }
             </style>
-            <div class="title">${title}</div>
-            <div class="body"><slot></slot></div>
+            <div class="title" part="title">${esc(title)}</div>
+            <div class="body" part="body"><slot></slot></div>
         `;
     }
 }

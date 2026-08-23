@@ -74,17 +74,20 @@ desktop reads), `app.js` (one custom element, one classic script), `app.css`,
   `kit/js/lib/` on 2.1.2, and a blind copy would have vendored a crash dump
   (reported, and gone in 2.2.0).
 - **Two kits, not one — and this repo only owns one of them.** Opened by a
-  desktop, the app runs against the *desktop's* kit: `sac.apps` injects `app.js`
-  into the desktop's own page, so this repo's `index.html` is never loaded. The
-  vendored copy governs standalone only.
-  **Do not hold this repo back to match a desktop.** That rule stood for a day
-  and the owner struck it down (2026-08-23): *"der desktop kümmert sich um sich
-  selbst"*. Track the newest kit, use what it ships, and let a host upgrade on
-  its own schedule. What that costs is worth knowing rather than fearing: a
-  feature newer than the host's kit is simply absent there, so the app looks
-  older when installed — `.sac-caption` falls back to an unstyled span, the
-  ribbon icons stay at the old size. It degrades; it does not break. Judge a new
-  feature by what its ABSENCE does, not by which version shipped it.
+  host, the app runs against the *host's* kit: `sac.apps` injects `app.js` into
+  the host's own page, so this repo's `index.html` is never loaded. The vendored
+  copy governs standalone only.
+  **This repo is responsible for the app, not for any host.** Track the newest
+  kit and use what it ships; a host upgrades on its own schedule and that is its
+  business, not ours (owner, 2026-08-23). There is no *the* desktop — there are
+  hosts, unknown in number and version, and tuning this repo to whichever one is
+  handy is how an app stops being portable.
+  So the question to ask of a new kit feature is never "which version has it"
+  but **what its ABSENCE does**. A feature the host's kit lacks is simply not
+  there: `.sac-caption` falls back to an unstyled span, sized icons fall back to
+  the default size. That degrades and is fine. Something the app cannot function
+  without would not be — that is the line, and it does not need a version number
+  to decide.
 - **The kit's API only.** Never reach into a component's shadow root or
   private fields. Anything on `sac` beyond `sac.app` belongs to the host and
   is optional — guard it (`typeof sac.toast === "function"`).
@@ -198,11 +201,11 @@ what `onMount` did: every unsubscribe kept, every timer cleared.
   3:1 cadmium yellow : ultramarine to `#96AD2B` — the same value as locally, as
   the eval predicted, and as before the APPKIT migration.
   **The install URL is `https://sacrvm.github.io/color-bucket/app.json`.**
-  A desktop installing it runs the app against ITS kit, not the vendored one —
-  see the two-kits rule. A host on an older kit renders the app slightly older;
-  that is expected, not a defect to chase.
-  The palette lives in `context.fs`, so an installed copy starts with an empty
-  one; that is correct, not a migration bug.
+  A host installing it runs the app against ITS kit, not the vendored one — see
+  the two-kits rule. On an older kit the app renders a little older; expected,
+  not a defect to chase. The palette lives in `context.fs`, which is per host
+  and per app id, so an installed copy starts with an empty one — also correct,
+  not a migration bug.
 - **Next:** the app is on `main` and every push redeploys, so treat `main` as
   live. There is no staging.
 - Not yet done: per-pot `tintingStrength`. The hook exists in the library and

@@ -57,7 +57,7 @@ desktop reads), `app.js` (one custom element, one classic script), `app.css`,
   plane inherit `currentColor` because no token can be trusted to contrast
   against an arbitrary mixed color.
 - **Vendor the kit, and never edit it.** Autark since 2026-08-22: `kit/` is a
-  verbatim release copy (`kit/VERSION` — currently **2.1.2**) and `index.html`
+  verbatim release copy (`kit/VERSION` — currently **2.2.0**) and `index.html`
   links it locally. No CDN. Upgrading is *delete `kit/`, unzip the new release*,
   so a local edit is the one thing that breaks the model; fixes belong in the
   appkit and come back in the next release.
@@ -69,20 +69,22 @@ desktop reads), `app.js` (one custom element, one classic script), `app.css`,
   **Verify a re-vendor, do not assume it.** Diff the vendored tree against the
   release with line endings normalised (`diff --strip-trailing-cr`) — CRLF makes
   every file look changed and hides the handful that really are. The 2.1.2
-  upgrade was four files. And read what you are copying in: the appkit working
-  tree carried a stray `bash.exe.stackdump` under `kit/js/lib/` on 2.1.2, and a
-  blind copy would have vendored a crash dump.
-- **Two kits, not one.** Opened by a desktop, the app runs against the
-  *desktop's* kit: `sac.apps` injects `app.js` into the desktop's own page, so
-  this repo's `index.html` is never loaded. A vendored copy governs standalone
-  only, so the two are meant to stay on the same version.
-  **Right now they are not, deliberately.** This repo is on **2.1.2**, the
-  desktop is still on **2.1.1** (owner's call, 2026-08-23): 2.1.2 is nothing but
-  the four fixes this app asked for. The price is that anything 2.1.2 introduced
-  is absent on the desktop, so the app must not *depend* on it — which is why
-  `sac-section::part(title)` is deliberately unused even though it now exists.
-  Use nothing from 2.1.2 that the app cannot do without until the desktop
-  follows.
+  upgrade was four files, the 2.2.0 one two. And read what you are copying in:
+  the appkit working tree carried a stray `bash.exe.stackdump` under
+  `kit/js/lib/` on 2.1.2, and a blind copy would have vendored a crash dump
+  (reported, and gone in 2.2.0).
+- **Two kits, not one — and this repo only owns one of them.** Opened by a
+  desktop, the app runs against the *desktop's* kit: `sac.apps` injects `app.js`
+  into the desktop's own page, so this repo's `index.html` is never loaded. The
+  vendored copy governs standalone only.
+  **Do not hold this repo back to match a desktop.** That rule stood for a day
+  and the owner struck it down (2026-08-23): *"der desktop kümmert sich um sich
+  selbst"*. Track the newest kit, use what it ships, and let a host upgrade on
+  its own schedule. What that costs is worth knowing rather than fearing: a
+  feature newer than the host's kit is simply absent there, so the app looks
+  older when installed — `.sac-caption` falls back to an unstyled span, the
+  ribbon icons stay at the old size. It degrades; it does not break. Judge a new
+  feature by what its ABSENCE does, not by which version shipped it.
 - **The kit's API only.** Never reach into a component's shadow root or
   private fields. Anything on `sac` beyond `sac.app` belongs to the host and
   is optional — guard it (`typeof sac.toast === "function"`).
@@ -197,7 +199,8 @@ what `onMount` did: every unsubscribe kept, every timer cleared.
   the eval predicted, and as before the APPKIT migration.
   **The install URL is `https://sacrvm.github.io/color-bucket/app.json`.**
   A desktop installing it runs the app against ITS kit, not the vendored one —
-  see the two-kits rule, and note the deliberate 2.1.2/2.1.1 skew while it lasts.
+  see the two-kits rule. A host on an older kit renders the app slightly older;
+  that is expected, not a defect to chase.
   The palette lives in `context.fs`, so an installed copy starts with an empty
   one; that is correct, not a migration bug.
 - **Next:** the app is on `main` and every push redeploys, so treat `main` as

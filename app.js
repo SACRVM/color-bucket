@@ -998,7 +998,11 @@
                    delete button and makes three controls of slightly different
                    heights look scattered. One caption, then one line. */
                 const name = document.createElement("span");
-                name.className = "cb-row-name";
+                // .sac-caption is the kit's: the same --caption-* tokens
+                // sac-section's own title reads, so a caption and the heading
+                // above it can no longer drift apart. .cb-row-name is only
+                // what is left over — where it sits, not what it looks like.
+                name.className = "cb-row-name sac-caption";
                 name.textContent = potName(b.c);
 
                 const controls = document.createElement("div");

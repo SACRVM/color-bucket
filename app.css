@@ -120,20 +120,13 @@ app-color-bucket .cb-file {
    centres are aligned. */
 app-color-bucket .cb-row { margin-bottom: 14px; }
 
-/* Same caption values the kit uses for its own small labels — including the
-   colour, which is the point of restating them here. 2.1.2 moved sac-section's
-   title off --text-dim (tertiary, 3.98:1) onto --text-muted (AA, 6.62:1); a
-   caption left behind on the old token would now read as less important than
-   the heading above it, which is exactly the drift that got the utility class
-   proposed to the appkit in the first place. */
+/* Type, weight, tracking and colour all come from .sac-caption in ui.css —
+   2.2.0 shipped it in answer to exactly this rule, which used to hand-copy
+   five declarations from sac-section's title and drifted from it twice. What
+   is left here is placement, which is the app's business and nobody else's. */
 app-color-bucket .cb-row-name {
     display: block;
     margin-bottom: 5px;
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
 }
 
 app-color-bucket .cb-row-controls {

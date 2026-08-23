@@ -57,7 +57,7 @@ desktop reads), `app.js` (one custom element, one classic script), `app.css`,
   plane inherit `currentColor` because no token can be trusted to contrast
   against an arbitrary mixed color.
 - **Vendor the kit, and never edit it.** Autark since 2026-08-22: `kit/` is a
-  verbatim release copy (`kit/VERSION` — currently **2.2.0**) and `index.html`
+  verbatim release copy (`kit/VERSION` — currently **2.3.1**) and `index.html`
   links it locally. No CDN. Upgrading is *delete `kit/`, unzip the new release*,
   so a local edit is the one thing that breaks the model; fixes belong in the
   appkit and come back in the next release.

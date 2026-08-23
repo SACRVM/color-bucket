@@ -167,3 +167,61 @@ test('harmony/css: pigments that slug to the same name stay distinct', () => {
         .map((l) => l.slice(0, l.indexOf(':')));
     assert.equal(new Set(props).size, props.length, 'duplicate custom property name');
 });
+
+/* ------------------------------------------------------------- recipes --
+   The generated palette is only worth anything if you can go on working with
+   it: every swatch has to arrive with the recipe that made it, and that
+   recipe has to be exactly reproducible in the mixer. A swatch whose recipe
+   mixes to a different colour is worse than no recipe at all — loading it
+   would silently change the colour it claims to be. */
+
+test('harmony/recipe: every swatch carries one', () => {
+    for (const sources of [['#F2C500', '#1F3A93'], ['#F2C500', '#1F3A93', '#D0342C']]) {
+        for (const sw of all(build(sources))) {
+            assert.ok(Array.isArray(sw.recipe) && sw.recipe.length,
+                'no recipe on ' + sw.label);
+        }
+    }
+});
+
+test('harmony/recipe: mixing it returns that swatch, exactly', () => {
+    for (const sources of [['#F2C500', '#1F3A93'], ['#F2C500', '#1F3A93', '#D0342C']]) {
+        for (const sw of all(build(sources))) {
+            assert.equal(mix(sw.recipe), sw.hex, 'recipe does not reproduce ' + sw.label);
+        }
+    }
+});
+
+test('harmony/recipe: parts are whole and within what the mixer holds', () => {
+    for (const sw of all(build(['#F2C500', '#1F3A93', '#D0342C']))) {
+        for (const b of sw.recipe) {
+            assert.ok(Number.isInteger(b.w), sw.label + ': ' + b.w + ' is not whole');
+            assert.ok(b.w >= 1 && b.w <= harmony.MAX_PARTS,
+                sw.label + ': ' + b.w + ' is out of range');
+            assert.match(b.c, HEX, sw.label + ': ' + b.c + ' is not a hex');
+        }
+    }
+});
+
+test('harmony/recipe: a pure is one part of itself, a blend one part each', () => {
+    const built = build(['#F2C500', '#1F3A93']);
+    const pures = built.hues.filter((h) => h.pure);
+    for (const p of pures) {
+        assert.deepEqual(p.recipe, [{ c: p.hex, w: 1 }]);
+    }
+    const blend = built.hues.find((h) => !h.pure);
+    assert.deepEqual(blend.recipe, [{ c: '#F2C500', w: 1 }, { c: '#1F3A93', w: 1 }]);
+});
+
+test('harmony/recipe: the ratios stay the kind a person could mix', () => {
+    /* 181:250 and 5:7 are the same colour; only one of them is a recipe. The
+       search prefers the simplest pair that lands on the ideal colour, so most
+       of a ramp comes out small. Not all of it can — near the ends a swatch is
+       genuinely sensitive to the ratio — so this guards the median rather than
+       the maximum, which is the part that would regress silently. */
+    const built = build(['#F2C500', '#1F3A93']);
+    const largest = built.neutrals.map((n) => Math.max(...n.recipe.map((b) => b.w)))
+        .sort((a, b) => a - b);
+    const median = largest[Math.floor(largest.length / 2)];
+    assert.ok(median <= 60, 'median largest part is ' + median + ', ratios have gone abstract');
+});

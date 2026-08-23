@@ -130,6 +130,13 @@
     ];
 
     const shelfById = (id) => SHELVES.filter((s) => s.id === id)[0];
+    /* The ceiling on a recipe's parts. 256 rather than a round 99 because a
+       glaze is a real thing — one part pigment in 256 parts white — and the
+       harmony ramp's light and dark ends are exactly that. Cap it lower and a
+       generated ramp step could not be reproduced in the mixer that shows it.
+       lib/harmony.js carries the same number as MAX_PARTS. */
+    const MAX_PARTS = 256;
+
     function potName(hex) {
         hex = hex.toUpperCase();
         for (const s of SHELVES) for (const p of s.pots) if (p.c === hex) return p.name;
@@ -192,7 +199,7 @@
             const parts = String(route).replace(/^\/+|\/+$/g, "").split(";");
             const bs = parts[0].split(",").map((t) => {
                 const m = t.match(/^([0-9A-Fa-f]{6})x(\d+)$/);
-                return m ? { c: "#" + m[1].toUpperCase(), w: Math.min(99, Math.max(1, parseInt(m[2], 10))) } : null;
+                return m ? { c: "#" + m[1].toUpperCase(), w: Math.min(MAX_PARTS, Math.max(1, parseInt(m[2], 10))) } : null;
             });
             if (!bs.length || !bs.every(Boolean)) return null;
             return {
@@ -231,6 +238,13 @@
             this._history = [];
             this._hi = -1;
             this._sel = -1;              // index of the selected palette entry
+            /* context.fs is asynchronous, so between mount and the palette
+               arriving the app holds an EMPTY palette that is not the truth.
+               Nothing may be recorded or written in that window: a history
+               floor laid there has an empty palette in it, and one undo would
+               then persist the emptiness over the file that was still being
+               read. Every gate below hangs off this flag. */
+            this._loaded = false;
 
             /* One tab and one panel per shelf. The kit never re-renders a
                panel — switching is two attribute flips — so a shelf keeps its
@@ -249,17 +263,6 @@
                             <sac-icon name="undo"></sac-icon></button>
                         <button type="button" class="nav-icon-btn cb-redo" title="Redo" aria-label="Redo" disabled>
                             <sac-icon name="redo"></sac-icon></button>
-                        <span class="cb-tsep" aria-hidden="true"></span>
-                        <button type="button" class="nav-icon-btn cb-pal-edit" title="Load the selected colour's recipe back into the mixer" aria-label="Load the selected recipe" disabled>
-                            <sac-icon name="pencil"></sac-icon></button>
-                        <button type="button" class="nav-icon-btn cb-pal-copy" title="Copy the selected colour" aria-label="Copy the selected colour" disabled>
-                            <sac-icon name="copy"></sac-icon></button>
-                        <button type="button" class="nav-icon-btn cb-pal-left" title="Move the selected colour left" aria-label="Move the selected colour left" disabled>
-                            <sac-icon name="chevron-left"></sac-icon></button>
-                        <button type="button" class="nav-icon-btn cb-pal-right" title="Move the selected colour right" aria-label="Move the selected colour right" disabled>
-                            <sac-icon name="chevron-right"></sac-icon></button>
-                        <button type="button" class="nav-icon-btn cb-pal-del" title="Remove the selected colour from the palette" aria-label="Remove the selected colour" disabled>
-                            <sac-icon name="trash"></sac-icon></button>
                         <span class="cb-tsep" aria-hidden="true"></span>
                         <button type="button" class="nav-icon-btn cb-file-save" title="Download the palette as JSON" aria-label="Download the palette">
                             <sac-icon name="download"></sac-icon></button>
@@ -302,8 +305,21 @@
                         </sac-section>
 
                         <sac-section title="Palette">
-                            <div class="empty-state cb-pal-empty">
-                                <p>Nothing here yet — mix something and save it.</p>
+                            <!-- The palette's own controls sit with the palette,
+                                 not in the ribbon: they act on ONE colour, and
+                                 the ribbon carries what acts on the whole app.
+                                 .toolbar is the kit's documented button strip —
+                                 it shrinks .btn to the 32px recipe by itself. -->
+                            <div class="toolbar cb-pal-bar">
+                                <button type="button" class="btn cb-pal-new" title="Start a new, empty palette" aria-label="Start a new, empty palette">
+                                    <sac-icon name="document"></sac-icon></button>
+                                <span class="cb-tsep" aria-hidden="true"></span>
+                                <button type="button" class="btn cb-pal-add" title="New colour" aria-label="New colour">
+                                    <sac-icon name="plus"></sac-icon></button>
+                                <button type="button" class="btn cb-pal-dup" title="Duplicate the selected colour" aria-label="Duplicate the selected colour" disabled>
+                                    <sac-icon name="copy"></sac-icon></button>
+                                <button type="button" class="btn cb-pal-del" title="Delete the selected colour" aria-label="Delete the selected colour" disabled>
+                                    <sac-icon name="trash"></sac-icon></button>
                             </div>
                             <!-- selectable: the kit draws the 2px accent outline and runs the
                                  keyboard navigation. Selecting is what arms the
@@ -320,7 +336,6 @@
                         <h1 class="cb-hex">#000000</h1>
                         <div class="cb-actions">
                             <button type="button" class="btn cb-copy-hex">Copy hex</button>
-                            <button type="button" class="btn primary cb-to-pal">Save to palette</button>
                         </div>
                         <div class="cb-compare">
                             <sac-swatch class="cb-cmp-chip"></sac-swatch>
@@ -381,7 +396,7 @@
                 if (!sw || !this.contains(sw)) return;
                 const hex = String(sw.getAttribute("value") || "").toUpperCase();
                 const hit = this.buckets.filter((x) => x.c.toUpperCase() === hex)[0];
-                if (hit) { if (hit.w < 99) { hit.w++; this.refresh(); this.commit(); } }
+                if (hit) { if (hit.w < MAX_PARTS) { hit.w++; this.refresh(); this.commit(); } }
                 else { this.buckets.push({ c: hex, w: 1 }); this.buildRows(); this.refresh(); this.commit(); }
             });
 
@@ -406,12 +421,6 @@
                 this.buildRows(); this.refresh(); this.commit();
             });
             this.q(".cb-copy-hex").addEventListener("click", () => this.copy(this.q(".cb-hex").textContent));
-            this.q(".cb-to-pal").addEventListener("click", () => {
-                const h = this.q(".cb-hex").textContent;
-                if (this.hasColour(h)) return;
-                this.palette.push(this.entryFromRecipe(h));
-                this.renderPalette(); this.savePalette(); this.commit();
-            });
             this.q(".cb-copy-pal").addEventListener("click", () =>
                 this.copy(this.palette.map((e) => e.hex).join(", ")));
 
@@ -429,39 +438,111 @@
                 if (file) this.loadPaletteFile(file);
             });
 
-            /* ---- the palette's management, in the ribbon ---------------- */
-            this.q(".cb-pal-grid").addEventListener("sac:change", (e) => {
-                this._sel = this.palette.findIndex((x) =>
-                    x.hex.toUpperCase() === String(e.detail.value).toUpperCase());
+            /* ---- the palette --------------------------------------------
+               Choosing a colour OPENS it: its recipe goes straight into the
+               mixer, and from then on every change to that recipe is written
+               back into the entry. The palette colour is the document, the
+               recipe panel is its editor — there is no separate save step to
+               forget. */
+            const pal = this.q(".cb-pal-grid");
+            pal.addEventListener("sac:change", (e) => {
+                this._sel = Array.prototype.indexOf.call(pal.children, e.detail.swatch);
                 this.syncPaletteButtons();
-            });
-            this.q(".cb-pal-edit").addEventListener("click", () => {
                 const entry = this.palette[this._sel];
-                if (entry && entry.buckets) this.loadEntry(entry);
+                if (entry) this.loadEntry(entry);
             });
-            this.q(".cb-pal-copy").addEventListener("click", () => {
+
+            this.q(".cb-pal-new").addEventListener("click", async () => {
+                if (this.palette.length && typeof sac.dialog === "object") {
+                    const answer = await sac.dialog.confirm({
+                        title: "Start a new palette?",
+                        message: "The " + this.palette.length + " colours in this palette will be "
+                               + "cleared. Undo brings them back, and Download keeps them for good.",
+                        buttons: [
+                            { action: "cancel", label: "Cancel", kind: "default" },
+                            { action: "clear", label: "New palette", kind: "destructive" },
+                        ],
+                    });
+                    if (answer !== "clear") return;
+                }
+                this.palette = [this.freshEntry()];
+                this.selectEntry(0);
+            });
+
+            /* There is no "save" step, because there is nothing to save: what
+               the mixer shows is already a palette colour and follows every
+               change. So this button does not capture anything — it starts a
+               BLANK one and hands the mixer over to it. Forking the colour you
+               are on is the other button, next to it. */
+            this.q(".cb-pal-add").addEventListener("click", () => {
+                this.palette.push(this.freshEntry());
+                this.selectEntry(this.palette.length - 1);
+            });
+
+            this.q(".cb-pal-dup").addEventListener("click", () => {
                 const entry = this.palette[this._sel];
-                if (entry) this.copy(entry.hex);
+                if (!entry) return;
+                // The copy is what stays selected, so editing right after
+                // duplicating varies the copy and leaves the original alone.
+                this.palette.splice(this._sel + 1, 0, JSON.parse(JSON.stringify(entry)));
+                this.selectEntry(this._sel + 1);
             });
-            this.q(".cb-pal-left").addEventListener("click", () => this.movePalette(-1));
-            this.q(".cb-pal-right").addEventListener("click", () => this.movePalette(1));
+
             this.q(".cb-pal-del").addEventListener("click", () => {
                 const entry = this.palette[this._sel];
                 if (!entry) return;
-                this.palette.splice(this._sel, 1);
-                this._sel = -1;
-                this.renderPalette(); this.savePalette(); this.commit();
-                this.toast("Removed " + entry.hex);
+                const at = this._sel;
+                this.palette.splice(at, 1);
+                // Deleting the last colour leaves a blank one behind rather
+                // than an empty palette and a mix belonging to nothing.
+                if (!this.palette.length) this.palette.push(this.freshEntry());
+                this.selectEntry(at);
+                this.toast("Deleted " + entry.hex);
             });
+
+            /* Reordering by dragging. sac-swatch-grid displays, it does not
+               manage, so this is the app's: the swatches are light-DOM
+               children, which is exactly what makes plain HTML5 drag and drop
+               possible without reaching into anything. */
+            pal.addEventListener("dragstart", (e) => {
+                const sw = e.target.closest && e.target.closest("sac-swatch");
+                if (!sw || sw.parentElement !== pal) return;
+                this._dragFrom = Array.prototype.indexOf.call(pal.children, sw);
+                sw.classList.add("cb-dragging");
+                e.dataTransfer.effectAllowed = "move";
+                try { e.dataTransfer.setData("text/plain", sw.getAttribute("value") || ""); }
+                catch (err) { /* Safari refuses an empty payload */ }
+            });
+            pal.addEventListener("dragover", (e) => {
+                if (this._dragFrom == null) return;
+                const sw = e.target.closest && e.target.closest("sac-swatch");
+                if (!sw || sw.parentElement !== pal) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                this.markDropTarget(sw);
+            });
+            pal.addEventListener("drop", (e) => {
+                if (this._dragFrom == null) return;
+                const sw = e.target.closest && e.target.closest("sac-swatch");
+                if (!sw || sw.parentElement !== pal) return;
+                e.preventDefault();
+                const to = Array.prototype.indexOf.call(pal.children, sw);
+                this.dropAt(to);
+            });
+            pal.addEventListener("dragend", () => this.endDrag());
 
             this.q(".cb-harm-add").addEventListener("click", () => {
                 if (!this._harmony) return;
                 const before = this.palette.length;
                 for (const s of this._harmony.hues.concat(this._harmony.neutrals)) {
-                    // buckets: null — a blend or a ramp step is not a recipe
-                    // the recipe panel can hold, and storing a fake one would
-                    // load something that does not reproduce the colour.
-                    if (!this.hasColour(s.hex)) this.palette.push({ hex: s.hex, buckets: null });
+                    if (this.hasColour(s.hex)) continue;
+                    // The generator hands over the recipe that made each
+                    // swatch, so what lands in the palette is adjustable
+                    // rather than a dead value.
+                    this.palette.push(s.recipe
+                        ? { hex: s.hex, buckets: s.recipe.map((b) => ({ c: b.c, w: b.w })),
+                            mode: this.mode, shelf: this.shelf }
+                        : this.entryOf(s.hex));
                 }
                 const added = this.palette.length - before;
                 if (added) { this.renderPalette(); this.savePalette(); this.commit(); }
@@ -491,6 +572,10 @@
                 const r = decodeRecipe(route);
                 if (!r || encodeRecipe(this.buckets, this.mode, this.shelf) === route) return;
                 this.buckets = r.buckets; this.mode = r.mode; this.shelf = r.shelf;
+                /* A pasted link is a DIFFERENT colour, not an edit of the one
+                   currently open — without letting go first, the write-back
+                   would quietly overwrite it with what the link carried. */
+                this._sel = -1;
                 this.q(".cb-shelves").setAttribute("active", this.shelf);
                 this.fillShelf(this.shelf);
                 this.buildRows();
@@ -501,21 +586,25 @@
                 // it the rows show the new recipe while the result, the pot
                 // pills and the palette still describe the old one.
                 this.refresh();
+                // …and the link's colour has to become one of the palette's,
+                // or the app would sit on a mix that belongs to nothing.
+                if (this._loaded) { this.ensureCurrent(); this.commit(); }
             });
 
-            this.loadPalette();
             this.renderPalette();
             this.setMode(this.mode, true);
             this.refresh();
-            // The state the app opened in is the floor of the undo stack.
-            // loadPalette resolves later and lays the floor again, with the
-            // restored palette in it.
-            this.resetHistory();
+            // No floor yet: loadPalette lays it when the palette is actually
+            // there. Until then undo, redo and the palette buttons are dead.
+            this.syncHistoryButtons();
+            this.loadPalette();
         }
 
         /** Undo exactly what onMount did. */
         onUnmount() {
             if (this._offRoute) { this._offRoute(); this._offRoute = null; }
+            // A pending write must not fire into a dead element.
+            if (this._saveTimer) { clearTimeout(this._saveTimer); this._saveTimer = null; this.savePalette(); }
             // The About window lives on document.body, outside this element,
             // so nothing else would take it away.
             if (this._about) { this._about.remove(); this._about = null; }
@@ -530,11 +619,13 @@
 
            Keeping the hex alone would be the dead end this app exists to
            escape: you could look at the colour and never adjust it again.
-           Entries that come out of the harmony panel carry buckets: null —
-           a blend or a ramp step is not a recipe the recipe panel can hold,
-           and storing a fake one would load something that does not
-           reproduce the colour. They stay copyable, not editable, and the
-           ribbon says so by disabling the one button that would pretend. */
+
+           EVERY entry has a recipe, so choosing one always opens something
+           editable. A colour that arrives without one — a blend, a ramp step,
+           a palette stored before recipes existed — gets the only honest
+           one there is: itself, one part. That is not a placeholder; a
+           one-pot mix is measured identity through the engine, checked on
+           every corner of every shelf. */
 
         /** The current recipe as an entry. Cloned: the palette must not move
             when the recipe does. */
@@ -547,22 +638,76 @@
             };
         }
 
+        /* ---- the invariant -------------------------------------------
+           There is no such thing as a mix that belongs to nothing. What the
+           mixer shows is ALWAYS a palette colour, and editing it edits that
+           colour. Everything below exists to keep that true: after a delete,
+           after clearing the palette, and on the way in from a shared link. */
+
+        /** The smallest thing that is already a colour: one pot, one part. */
+        freshEntry() {
+            const first = shelfById(this.shelf).pots[0];
+            return {
+                hex: first.c,
+                buckets: [{ c: first.c, w: 1 }],
+                mode: this.mode,
+                shelf: this.shelf,
+            };
+        }
+
+        /** Make entry i the one being mixed. */
+        selectEntry(i) {
+            this._sel = Math.max(0, Math.min(i, this.palette.length - 1));
+            this.renderPalette();
+            this.savePalette();
+            this.loadEntry(this.palette[this._sel]);
+        }
+
+        /** Called once the stored palette is really there: the recipe the app
+            opened with — a shared link, or the default — has to BE one of the
+            colours. Matched on the whole recipe rather than on the resulting
+            hex, because two different recipes can land on the same colour and
+            opening one must not hand you the other. */
+        ensureCurrent() {
+            const want = encodeRecipe(this.buckets, this.mode, this.shelf);
+            let at = this.palette.findIndex((e) =>
+                encodeRecipe(e.buckets, e.mode, e.shelf) === want);
+            if (at < 0) {
+                this.palette.push(this.entryFromRecipe(this.q(".cb-hex").textContent));
+                at = this.palette.length - 1;
+            }
+            this._sel = at;
+            this.renderPalette();
+            this.savePalette();
+        }
+
+        /** A colour with no recipe but its own: one part of itself. */
+        entryOf(hex) {
+            return {
+                hex: hex.toUpperCase(),
+                buckets: [{ c: hex.toUpperCase(), w: 1 }],
+                mode: this.mode,
+                shelf: this.shelf,
+            };
+        }
+
         /** Tolerant on the way in: the palette used to be an array of bare
             hex strings, and a file people hand around should not be fussy. */
         normalizeEntry(raw) {
             if (typeof raw === "string") {
-                return sac.color.parse(raw) ? { hex: raw.toUpperCase(), buckets: null } : null;
+                return sac.color.parse(raw) ? this.entryOf(raw) : null;
             }
             if (!raw || typeof raw !== "object" || !sac.color.parse(raw.hex)) return null;
             const bs = Array.isArray(raw.buckets)
                 ? raw.buckets
                     .filter((b) => b && sac.color.parse(b.c))
                     .map((b) => ({ c: String(b.c).toUpperCase(),
-                                   w: Math.min(99, Math.max(1, Number(b.w) || 1)) }))
+                                   w: Math.min(MAX_PARTS, Math.max(1, Number(b.w) || 1)) }))
                 : null;
+            const hex = String(raw.hex).toUpperCase();
             return {
-                hex: String(raw.hex).toUpperCase(),
-                buckets: bs && bs.length ? bs : null,
+                hex: hex,
+                buckets: bs && bs.length ? bs : [{ c: hex, w: 1 }],
                 mode: raw.mode === "rgb" ? "rgb" : "pigment",
                 shelf: raw.shelf && shelfById(raw.shelf) ? raw.shelf : "oils",
             };
@@ -575,7 +720,6 @@
         /** One line naming what made the colour — it becomes the swatch's
             accessible name and its tooltip. */
         entryLabel(entry) {
-            if (!entry.buckets) return entry.hex + " — no recipe stored";
             return entry.hex + " — " + entry.buckets.map((b) => b.w).join(":") + " "
                  + entry.buckets.map((b) => potName(b.c)).join(" · ");
         }
@@ -592,31 +736,76 @@
             this.showNote();
             this.refresh();
             this.commit();
-            this.toast("Loaded " + entry.hex);
         }
 
-        /** Reordering is the one thing sac-swatch-grid has no answer for — it
-            displays, it does not manage. Two buttons rather than drag and
-            drop: they work from the keyboard for free, and the grid carries
-            on being drawn by the kit. */
-        movePalette(step) {
-            const from = this._sel, to = from + step;
-            if (from < 0 || to < 0 || to >= this.palette.length) return;
+        /** Nothing chosen, nothing to act on — and nothing at all until the
+            stored palette has arrived, or a click in that window would act on
+            an emptiness that is only there because reading takes a moment. */
+        syncPaletteButtons() {
+            const entry = this._loaded && this.palette[this._sel];
+            this.q(".cb-pal-new").disabled = !this._loaded;
+            this.q(".cb-pal-add").disabled = !this._loaded;
+            this.q(".cb-pal-dup").disabled = !entry;
+            this.q(".cb-pal-del").disabled = !entry;
+        }
+
+        /* ------------------------------------------------------- reordering */
+        markDropTarget(sw) {
+            if (this._dropOn === sw) return;
+            if (this._dropOn) this._dropOn.classList.remove("cb-drop-target");
+            this._dropOn = sw;
+            sw.classList.add("cb-drop-target");
+        }
+
+        dropAt(to) {
+            const from = this._dragFrom;
+            this.endDrag();
+            if (from == null || to < 0 || to === from) return;
             const moved = this.palette.splice(from, 1)[0];
             this.palette.splice(to, 0, moved);
-            this._sel = to;
+            // The selection follows the colour, not the position it left.
+            if (this._sel === from) this._sel = to;
+            else if (this._sel > from && this._sel <= to) this._sel -= 1;
+            else if (this._sel < from && this._sel >= to) this._sel += 1;
             this.renderPalette(); this.savePalette(); this.commit();
         }
 
-        /** Nothing selected disables everything; a colour without a recipe
-            disables the one button that would pretend otherwise. */
-        syncPaletteButtons() {
+        endDrag() {
+            const grid = this.q(".cb-pal-grid");
+            for (const sw of grid.children) sw.classList.remove("cb-dragging", "cb-drop-target");
+            this._dragFrom = null;
+            this._dropOn = null;
+        }
+
+        /* The edit IS the save. Every recipe change writes straight back into
+           the chosen palette colour — there is no second gesture to forget,
+           which is the whole point of the palette holding recipes at all.
+           The swatch is updated in place: grid.colors would rebuild all of
+           them and throw away the selection mid-drag of a stepper. */
+        syncSelectedEntry(hex) {
+            if (this._restoring) return;
             const entry = this.palette[this._sel];
-            this.q(".cb-pal-edit").disabled  = !entry || !entry.buckets;
-            this.q(".cb-pal-copy").disabled  = !entry;
-            this.q(".cb-pal-del").disabled   = !entry;
-            this.q(".cb-pal-left").disabled  = !entry || this._sel <= 0;
-            this.q(".cb-pal-right").disabled = !entry || this._sel >= this.palette.length - 1;
+            if (!entry) return;
+            entry.hex = hex;
+            entry.buckets = this.buckets.map((b) => ({ c: b.c, w: b.w }));
+            entry.mode = this.mode;
+            entry.shelf = this.shelf;
+            const sw = this.q(".cb-pal-grid").children[this._sel];
+            if (sw) {
+                sw.setAttribute("value", hex);
+                sw.setAttribute("label", this.entryLabel(entry));
+            }
+            this.savePaletteSoon();
+        }
+
+        /** Held down, a stepper fires per step. The palette follows every one
+            of them on screen; the FILE only needs the one that stands. */
+        savePaletteSoon() {
+            if (this._saveTimer) clearTimeout(this._saveTimer);
+            this._saveTimer = setTimeout(() => {
+                this._saveTimer = null;
+                this.savePalette();
+            }, 400);
         }
 
         /* ------------------------------------------------------------- file --
@@ -668,8 +857,7 @@
 
                 if (!entries.length) { this.toast("No usable colours in that file"); return; }
                 this.palette = entries;
-                this._sel = -1;
-                this.renderPalette(); this.savePalette(); this.commit();
+                this.selectEntry(0);
                 this.toast("Loaded " + entries.length + " colours");
             };
             reader.readAsText(file);
@@ -682,12 +870,12 @@
         snapshot() {
             return JSON.stringify({
                 buckets: this.buckets, mode: this.mode, shelf: this.shelf,
-                palette: this.palette,
+                palette: this.palette, sel: this._sel,
             });
         }
 
         commit() {
-            if (this._restoring) return;
+            if (this._restoring || !this._loaded) return;
             const snap = this.snapshot();
             if (this._history[this._hi] === snap) return;
             this._history.length = this._hi + 1;     // a new move drops the redo tail
@@ -724,7 +912,9 @@
                 this.mode = state.mode;
                 this.shelf = state.shelf;
                 this.palette = state.palette.map((e) => this.normalizeEntry(e)).filter(Boolean);
-                this._sel = -1;
+                // Which colour was open is part of the state — undo puts you
+                // back in front of the one you were mixing.
+                this._sel = Math.min(state.sel == null ? -1 : state.sel, this.palette.length - 1);
                 this.q(".cb-shelves").setAttribute("active", this.shelf);
                 this.fillShelf(this.shelf);
                 this.buildRows();
@@ -738,6 +928,8 @@
 
         syncHistoryButtons() {
             this.q(".cb-undo").disabled = this._hi <= 0;
+            // length 0 makes this -1, so an empty stack disables both — which
+            // is exactly the state before the palette has been read.
             this.q(".cb-redo").disabled = this._hi >= this._history.length - 1;
         }
 
@@ -745,19 +937,25 @@
            context.fs is rooted at the app id, so a palette saved standalone is
            still there once the app is installed on a desktop. */
         async loadPalette() {
-            if (!this._ctx || !this._ctx.fs) return;
             try {
-                const saved = await this._ctx.fs.read("palette.json", null);
-                const list = typeof saved === "string" ? JSON.parse(saved) : saved;
-                if (Array.isArray(list)) {
-                    this.palette = list.map((e) => this.normalizeEntry(e)).filter(Boolean);
-                    this.renderPalette();
-                    this.resetHistory();
+                if (this._ctx && this._ctx.fs) {
+                    const saved = await this._ctx.fs.read("palette.json", null);
+                    const list = typeof saved === "string" ? JSON.parse(saved) : saved;
+                    if (Array.isArray(list)) {
+                        this.palette = list.map((e) => this.normalizeEntry(e)).filter(Boolean);
+                    }
                 }
             } catch (e) { /* an unreadable palette is not worth an error */ }
+            /* Opened, however it went — no host, no file, or a broken one. The
+               app is only allowed to record and to write from here on, and
+               what is on screen NOW is the floor of the undo stack. */
+            this._loaded = true;
+            this.ensureCurrent();
+            this.resetHistory();
         }
 
         savePalette() {
+            if (!this._loaded) return;      // never write what we have not read
             if (!this._ctx || !this._ctx.fs) return;
             Promise.resolve(this._ctx.fs.write("palette.json", JSON.stringify(this.palette))).catch(() => {});
         }
@@ -822,7 +1020,7 @@
                 const parts = document.createElement("sac-stepper");
                 parts.setAttribute("value", String(b.w));
                 parts.setAttribute("min", "1");
-                parts.setAttribute("max", "99");
+                parts.setAttribute("max", String(MAX_PARTS));
                 parts.setAttribute("unit", "parts");
                 parts.setAttribute("label", "Parts of " + potName(b.c));
                 parts.addEventListener("sac:change", (e) => {
@@ -856,8 +1054,11 @@
                 label: this.entryLabel(e),
                 selected: i === this._sel,
             }));
+            // .colors rebuilds the children, so draggable is set here rather
+            // than once: it is a property of every swatch this grid holds.
+            for (const sw of grid.children) sw.setAttribute("draggable", "true");
+            // Only ever true in the moment before the stored palette lands.
             grid.hidden = !this.palette.length;
-            this.q(".cb-pal-empty").hidden = !!this.palette.length;
             this.q(".cb-copy-pal").hidden = !this.palette.length;
             this.syncPaletteButtons();
         }
@@ -906,6 +1107,7 @@
             this.q(".cb-cmp-text").textContent =
                 (this.mode === "pigment" ? "What RGB would give you: " : "What pigment would give you: ") + other;
 
+            this.syncSelectedEntry(main);
             this.updateHarmony();
 
             if (this._ctx && this._ctx.deepLink) {

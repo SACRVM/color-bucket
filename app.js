@@ -210,17 +210,6 @@
         } catch (e) { return null; }
     }
 
-    /* Not on the surface. A segmented control with two labelled sides needs
-       no paragraph underneath it — the app is judged by the colour it makes,
-       and an explanation of HOW belongs behind a deliberate click. This is
-       the same rule the third-party notices follow. */
-    const MODE_HELP =
-        "<p><b>Pigment</b> mixes subtractively — spectral Kubelka-Munk over 38 " +
-        "wavelength bands: yellow + blue makes green, like on a palette, not in " +
-        "a colour space.</p>" +
-        "<p><b>RGB</b> averages the channel values — fast, but mixes often turn " +
-        "grey and muddy.</p>";
-
     class AppColorBucket extends sac.app.Element {
         /** Once, on first connect. Light DOM, so the kit's components and its
             stylesheet both reach the markup. */
@@ -269,8 +258,8 @@
                         <button type="button" class="nav-icon-btn cb-file-load" title="Load a palette from JSON" aria-label="Load a palette">
                             <sac-icon name="upload"></sac-icon></button>
                         <span class="cb-tsep" aria-hidden="true"></span>
-                        <button type="button" class="nav-icon-btn cb-about" title="Credits, licences &amp; help" aria-label="Credits, licences and help">
-                            <sac-icon name="note"></sac-icon></button>
+                        <button type="button" class="nav-icon-btn cb-about" title="Credits &amp; licences" aria-label="Credits and licences">
+                            <sac-icon name="copyright"></sac-icon></button>
                     </div>
                 </sac-nav>
 
@@ -428,7 +417,12 @@
                ownership to the app and dropped the sac.toolbar projection
                that used to stand here — a guarded call to it ran silently
                into nothing and the About button simply vanished. */
-            this.q(".cb-about").addEventListener("click", () => this.showAbout());
+            /* Never render a control that does nothing — the kit's own rule,
+               and the one this app filed against sac-nav's empty burger. On a
+               host whose kit predates sac.about there is no About to open, so
+               there is no button either. */
+            if (sac.about) this.q(".cb-about").addEventListener("click", () => this.showAbout());
+            else this.q(".cb-about").hidden = true;
             this.q(".cb-undo").addEventListener("click", () => this.undo());
             this.q(".cb-redo").addEventListener("click", () => this.redo());
             this.q(".cb-file-save").addEventListener("click", () => this.savePaletteFile());
@@ -605,9 +599,6 @@
             if (this._offRoute) { this._offRoute(); this._offRoute = null; }
             // A pending write must not fire into a dead element.
             if (this._saveTimer) { clearTimeout(this._saveTimer); this._saveTimer = null; this.savePalette(); }
-            // The About window lives on document.body, outside this element,
-            // so nothing else would take it away.
-            if (this._about) { this._about.remove(); this._about = null; }
         }
 
         q(sel) { return this.querySelector(sel); }
@@ -1159,52 +1150,27 @@
                 built.sources.length + " pigments · every colour mixed from them";
         }
 
-        /* Third-party notices belong in the repo and behind a deliberate
-           click, never parked permanently in the app's chrome.
+        /* The About is the KIT's surface, not ours — 2.3.0 ships it so that
+           every app's credits come out the same shape and a host's About and
+           an app's About read as relatives. This app asked for that and then
+           had to be the first to stop hand-rolling one.
 
-           A <sac-window>, not a dialog: a dialog is modal and exists to ask a
-           question, and sac.dialog.confirm takes one string as textContent, so
-           four paragraphs of licence text collapse into one block. A window
-           takes light-DOM children, stays out of the way, and can be left open
-           while you keep mixing. Created once and reopened, the way the style
-           guide demonstrates. */
-        showAbout() {
-            let win = this._about;
-            if (!win) {
-                win = document.createElement("sac-window");
-                win.className = "cb-about";
-                win.setAttribute("title", "Color Bucket — credits &amp; help");
-                win.setAttribute("controls", "close");
-                win.innerHTML =
-                    "<p>Mix colors like paint, not like numbers. Built on SACRVM APPKIT.</p>" +
-                    MODE_HELP +
-                    "<p><b>Pigment mixing:</b> spectral.js — MIT licence, © 2025 " +
-                    "Ronald van Wijnen. Its reflectance curves follow Scott Allen Burns' " +
-                    "LHTSS method. Kubelka-Munk theory: Paul Kubelka &amp; Franz Munk, 1931.</p>" +
-                    "<p><b>RAL shelf:</b> “RAL” is a registered trademark of " +
-                    "RAL gGmbH, which is not affiliated with this app. Those values are " +
-                    "common sRGB approximations, not colour standards.</p>" +
-                    "<p>Color Bucket is MIT licensed. The full notices ship in LICENSE.</p>";
-                document.body.appendChild(win);
-                this._about = win;
+           Everything it renders is manifest data: name, icon, version, the
+           description, and the `notices` array. Hosted, context.manifest hands
+           it over. Standalone there is no manifest in the context (the kit
+           says so out loud), so app.json is fetched — once, on the first click.
+           Reading the same file a host would read is what keeps the licence
+           text in ONE place. */
+        async aboutData() {
+            if (this._ctx && this._ctx.manifest) return this._ctx.manifest;
+            if (!this._manifest) {
+                this._manifest = await fetch(BASE + "app.json").then((r) => r.json());
             }
-            /* Fitted to the viewport at open time, not to a number typed
-               once: a fixed 520x380 is fine on a big screen and hangs off the
-               top and bottom of a small one. The kit clamps the TITLE BAR back
-               into reach, which keeps a window draggable but does not stop the
-               body from running off the edges. 96px of margin leaves the nav
-               ribbon clear. */
-            const vw = window.innerWidth, vh = window.innerHeight;
-            win.setAttribute("width", Math.max(300, Math.min(520, vw - 80)) + "px");
-            win.setAttribute("height", Math.max(200, Math.min(400, vh - 160)) + "px");
-            if (!win.hasAttribute("open")) {
-                win.setAttribute("left", Math.round(Math.max(20, (vw - 520) / 2)) + "px");
-                win.setAttribute("top", Math.round(Math.max(70, (vh - 400) / 2)) + "px");
-            }
+            return this._manifest;
+        }
 
-            if (win.hasAttribute("minimized")) win.restore();
-            win.open();
-            win.bringToFront();
+        async showAbout() {
+            sac.about.open(await this.aboutData());
         }
 
         /** Copies a colour and says so by showing it — the value is short. */

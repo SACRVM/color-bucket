@@ -6,5 +6,19 @@
   "kind": "view",
   "tag": "app-color-bucket",
   "entry": "app.js",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "notices": [
+    {
+      "title": "Pigment mixing",
+      "text": "spectral.js — MIT licence, © 2025 Ronald van Wijnen. Its reflectance curves follow Scott Allen Burns' LHTSS method. Kubelka-Munk theory: Paul Kubelka & Franz Munk, 1931."
+    },
+    {
+      "title": "RAL shelf",
+      "text": "“RAL” is a registered trademark of RAL gGmbH, which is not affiliated with this app. Those values are common sRGB approximations, not colour standards."
+    },
+    {
+      "title": "Colour Bucket",
+      "text": "MIT licensed, and built on SACRVM APPKIT. The full notices ship in LICENSE; README.md carries the origin story and the engine maths."
+    }
+  ]
 }

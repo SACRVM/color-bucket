@@ -188,8 +188,20 @@ what `onMount` did: every unsubscribe kept, every timer cleared.
   *Copy as CSS* exports the lot as custom properties (`lib/harmony.js` →
   `toCSS`), which is the bridge to a design system.
   spectral.js is credited in the app itself, and RAL carries its trademark note.
-- **Next:** publish — Settings → Pages → deploy from `main`, `/ (root)`, then
-  `app.json` must load over HTTPS before a desktop can install it.
+  **Published (2026-08-23):** <https://github.com/SACRVM/color-bucket>, public,
+  `main`, Pages deploying from `/ (root)`. Live at
+  <https://sacrvm.github.io/color-bucket/>. Verified over HTTPS rather than
+  assumed: `app.json` serves as `application/json` (the one header a desktop
+  needs), `kit/`, `vendor/` and `lib/` all come down, and the deployed app mixes
+  3:1 cadmium yellow : ultramarine to `#96AD2B` — the same value as locally, as
+  the eval predicted, and as before the APPKIT migration.
+  **The install URL is `https://sacrvm.github.io/color-bucket/app.json`.**
+  A desktop installing it runs the app against ITS kit, not the vendored one —
+  see the two-kits rule, and note the deliberate 2.1.2/2.1.1 skew while it lasts.
+  The palette lives in `context.fs`, so an installed copy starts with an empty
+  one; that is correct, not a migration bug.
+- **Next:** the app is on `main` and every push redeploys, so treat `main` as
+  live. There is no staging.
 - Not yet done: per-pot `tintingStrength`. The hook exists in the library and
   the decisions log calls for it, but the values would have to be invented —
   measured data was ruled out on cost, and an earlier round of guessed pot

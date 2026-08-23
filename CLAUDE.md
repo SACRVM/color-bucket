@@ -216,3 +216,9 @@ When you produce a file the user will want to open — a report, screenshot, dia
 @../.firepit/projects/claude.md
 
 The two imports above are shared files in the Firepit central repo — edit them there and every project follows. They carry policy; the tools themselves are described by Firepit's MCP server at the handshake, so nothing is duplicated between the two.
+
+## Firepit pinned knowledge
+
+@.firepit/knowledge-pinned.md
+
+The import above auto-loads the knowledge docs marked `pin: true` in their frontmatter — always-on rules that apply every session without a search. Firepit regenerates the file from the pinned docs; don't edit it directly. Pin/unpin via the pinned flag on `firepit_knowledge_add` / `firepit_knowledge_update`, and keep the pinned set small — everything else stays reachable through `firepit_knowledge_search`.

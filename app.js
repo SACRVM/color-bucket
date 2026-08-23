@@ -269,8 +269,8 @@
                         <button type="button" class="nav-icon-btn cb-file-load" title="Load a palette from JSON" aria-label="Load a palette">
                             <sac-icon name="upload"></sac-icon></button>
                         <span class="cb-tsep" aria-hidden="true"></span>
-                        <button type="button" class="nav-icon-btn cb-about" title="About &amp; credits" aria-label="About and credits">
-                            <sac-icon name="info"></sac-icon></button>
+                        <button type="button" class="nav-icon-btn cb-about" title="Credits, licences &amp; help" aria-label="Credits, licences and help">
+                            <sac-icon name="note"></sac-icon></button>
                     </div>
                 </sac-nav>
 
@@ -1173,7 +1173,7 @@
             if (!win) {
                 win = document.createElement("sac-window");
                 win.className = "cb-about";
-                win.setAttribute("title", "Color Bucket — about &amp; help");
+                win.setAttribute("title", "Color Bucket — credits &amp; help");
                 win.setAttribute("controls", "close");
                 win.innerHTML =
                     "<p>Mix colors like paint, not like numbers. Built on SACRVM APPKIT.</p>" +

@@ -41,6 +41,12 @@
         "npm test"
       ],
       "window": "new"
+    },
+    {
+      "name": "GitHub",
+      "type": "Url",
+      "icon": "\uD83D\uDC19",
+      "url": "https://github.com/SACRVM/color-bucket"
     }
   ]
 }

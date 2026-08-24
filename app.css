@@ -215,6 +215,11 @@ app-color-bucket .cb-result .btn:hover {
     background: color-mix(in srgb, currentColor 18%, transparent);
 }
 
+/* A button, not a label — and deliberately not the kit's .btn: that class is
+   an uppercase, letter-spaced control, and this is a sentence. It stands on the
+   result plane, so it takes its ink from currentColor for the same reason the
+   two buttons above it do — no token can be trusted against an arbitrary mixed
+   colour. */
 app-color-bucket .cb-compare {
     position: absolute;
     bottom: 18px;
@@ -223,8 +228,27 @@ app-color-bucket .cb-compare {
     display: flex;
     align-items: center;
     gap: 9px;
+    padding: 6px 12px;
+    font: inherit;
     font-size: 12.5px;
+    color: inherit;
+    background: none;
+    border: 1.5px solid color-mix(in srgb, currentColor 45%, transparent);
+    border-radius: var(--radius-m);
+    cursor: pointer;
     opacity: .8;
+    transition: opacity .15s ease, border-color .15s ease, background .15s ease;
+}
+
+app-color-bucket .cb-compare:hover {
+    opacity: 1;
+    border-color: currentColor;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+app-color-bucket .cb-compare:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
 }
 
 /* --------------------------------------------------------------- harmony -- */

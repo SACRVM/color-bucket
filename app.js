@@ -331,13 +331,6 @@
                             <button type="button" class="btn cb-add">+ Custom color</button>
                         </sac-section>
 
-                        <sac-section title="Mixing mode">
-                            <sac-segmented-control class="cb-mode" value="${this.mode}">
-                                <button data-value="pigment">Pigment</button>
-                                <button data-value="rgb">RGB</button>
-                            </sac-segmented-control>
-                        </sac-section>
-
                         <sac-section title="Palette">
                             <!-- The palette's own controls sit with the palette,
                                  not in the ribbon: they act on ONE colour, and
@@ -378,15 +371,21 @@
                     </aside>
 
                     <main class="cb-result" aria-live="polite">
-                        <p class="cb-result-name">Your mix</p>
+                        <p class="cb-result-name"></p>
                         <h1 class="cb-hex">#000000</h1>
                         <div class="cb-actions">
                             <button type="button" class="btn cb-copy-hex">Copy hex</button>
                         </div>
-                        <div class="cb-compare">
+                        <!-- The readout IS the control. This line already
+                             carried the other engine's answer, named and worked
+                             out; pressing it goes there, and the line turns
+                             round to offer the way back. That retires a whole
+                             sidebar section for a two-state switch, and puts
+                             the switch beside the number it changes. -->
+                        <button type="button" class="cb-compare">
                             <sac-swatch class="cb-cmp-chip"></sac-swatch>
                             <span class="cb-cmp-text"></span>
-                        </div>
+                        </button>
                         <section class="cb-harmony" hidden>
                             <p class="cb-harm-title">A palette from these pigments</p>
                             <sac-swatch-grid class="cb-harm-hues" columns="10"></sac-swatch-grid>
@@ -453,11 +452,8 @@
                 this.commit();
             });
 
-            // Kit 2.0.0 unified value events: a kit component emits sac:change
-            // with detail { value }, never a native `change`, and the value is
-            // no longer the detail itself.
-            this.q(".cb-mode").addEventListener("sac:change", (e) => {
-                this.setMode(e.detail.value);
+            this.q(".cb-compare").addEventListener("click", () => {
+                this.setMode(this.mode === "pigment" ? "rgb" : "pigment");
                 this.commit();
             });
 
@@ -1166,8 +1162,6 @@
 
         setMode(m, silent) {
             this.mode = m;
-            const seg = this.q(".cb-mode");
-            if (seg.getAttribute("value") !== m) seg.setAttribute("value", m);
             if (!silent) this.refresh();
         }
 
@@ -1202,11 +1196,21 @@
             // from a token that cannot know what it is sitting on.
             result.style.color = inkOn(main);
             this.q(".cb-hex").textContent = main;
+            /* Which engine made this number is stated rather than inferred: the
+               heading names the mode you are in, the button below names the one
+               you are not. Without the heading the only clue would be that the
+               button offers the other one, which is a riddle, not a label. */
+            const otherName = this.mode === "pigment" ? "RGB" : "pigment";
+            this.q(".cb-result-name").textContent =
+                this.mode === "pigment" ? "Pigment mix" : "RGB mix";
             const chip = this.q(".cb-cmp-chip");
             chip.setAttribute("value", other);
             chip.setAttribute("label", other);
             this.q(".cb-cmp-text").textContent =
-                (this.mode === "pigment" ? "What RGB would give you: " : "What pigment would give you: ") + other;
+                "What " + otherName + " would give you: " + other;
+            const cmp = this.q(".cb-compare");
+            cmp.title = "Switch to " + otherName + " mixing";
+            cmp.setAttribute("aria-label", "Switch to " + otherName + " mixing — " + other);
 
             this.syncSelectedEntry(main);
             this.updateHarmony();

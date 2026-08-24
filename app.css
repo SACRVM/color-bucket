@@ -65,9 +65,12 @@ app-color-bucket .cb-pal-del:hover:not(:disabled) {
     color: var(--danger-text);
 }
 
-/* Dragging to reorder. The swatch keeps being drawn by the kit — these two
-   states are the app's, because the grid displays and does not manage. */
-app-color-bucket .cb-pal-grid sac-swatch { cursor: grab; }
+/* Dragging to reorder, and dragging a generated swatch in. The swatch keeps
+   being drawn by the kit — these states are the app's, because the grid
+   displays and does not manage. */
+app-color-bucket .cb-pal-grid sac-swatch,
+app-color-bucket .cb-harm-hues sac-swatch,
+app-color-bucket .cb-harm-neutrals sac-swatch { cursor: grab; }
 app-color-bucket .cb-dragging { opacity: 0.4; cursor: grabbing; }
 /* An outline, not a border: a border would resize the cell mid-drag and make
    the whole grid twitch. Same reason sac-swatch draws `selected` that way. */

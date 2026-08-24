@@ -137,6 +137,15 @@
        lib/harmony.js carries the same number as MAX_PARTS. */
     const MAX_PARTS = 256;
 
+    /* Dragging a generated swatch into the palette carries the whole entry,
+       not the colour: a dropped hex would throw away the recipe and the name
+       the generator just worked out. A private MIME type rather than
+       text/plain, because dragover may only inspect the TYPES — it is not
+       allowed to read the data — and that is what decides whether the palette
+       accepts the drop at all. text/plain rides along so a drag out of the app
+       still means something. */
+    const DRAG_TYPE = "application/x-color-bucket-entry";
+
     function potName(hex) {
         hex = hex.toUpperCase();
         for (const s of SHELVES) for (const p of s.pots) if (p.c === hex) return p.name;
@@ -309,13 +318,25 @@
                                     <sac-icon name="copy"></sac-icon></button>
                                 <button type="button" class="btn cb-pal-del" title="Delete the selected colour" aria-label="Delete the selected colour" disabled>
                                     <sac-icon name="trash"></sac-icon></button>
+                                <!-- Where commands collect instead of growing
+                                     another button each. A menu costs one slot
+                                     however many entries it holds; a button
+                                     strip costs a slot per entry, and the fat
+                                     "Copy all hex values" bar that used to sit
+                                     under the palette was the first instalment
+                                     of that bill. -->
+                                <sac-menu class="cb-pal-menu">
+                                    <button slot="trigger" type="button" class="btn cb-pal-more" title="More palette commands" aria-label="More palette commands">
+                                        <sac-icon name="menu"></sac-icon></button>
+                                    <button data-action="copy-hex"><sac-icon name="copy"></sac-icon> Copy all hex values</button>
+                                    <button data-action="copy-css"><sac-icon name="document"></sac-icon> Copy as CSS</button>
+                                </sac-menu>
                             </div>
                             <!-- selectable: the kit draws the 2px accent outline and runs the
                                  keyboard navigation. Selecting is what arms the
                                  palette buttons in the ribbon; the grid itself is
                                  drawn exactly as before. -->
                             <sac-swatch-grid class="cb-pal-grid" columns="6" selectable hidden></sac-swatch-grid>
-                            <button type="button" class="btn cb-copy-pal" hidden>Copy all hex values</button>
                         </sac-section>
 
                     </aside>
@@ -337,7 +358,6 @@
                             <p class="cb-harm-foot">
                                 <span class="cb-harm-why"></span>
                                 <button type="button" class="btn cb-harm-add">Add all to palette</button>
-                                <button type="button" class="btn cb-harm-css">Copy as CSS</button>
                             </p>
                         </section>
                     </main>
@@ -410,8 +430,16 @@
                 this.buildRows(); this.refresh(); this.commit();
             });
             this.q(".cb-copy-hex").addEventListener("click", () => this.copy(this.q(".cb-hex").textContent));
-            this.q(".cb-copy-pal").addEventListener("click", () =>
-                this.copy(this.palette.map((e) => e.hex).join(", ")));
+            this.q(".cb-pal-menu").addEventListener("sac:select", (e) => {
+                if (e.detail.action === "copy-hex") {
+                    this.copyRaw(this.palette.map((x) => x.hex).join(", "),
+                        "Copied " + this.palette.length + " hex values");
+                } else if (e.detail.action === "copy-css") {
+                    if (!window.cbHarmony) return;
+                    this.copyRaw(cbHarmony.paletteToCSS(this.palette),
+                        "Copied the palette as CSS custom properties");
+                }
+            });
 
             /* The ribbon is the app's own markup now. 2.0.0 moved chrome
                ownership to the app and dropped the sac.toolbar projection
@@ -507,21 +535,41 @@
                 try { e.dataTransfer.setData("text/plain", sw.getAttribute("value") || ""); }
                 catch (err) { /* Safari refuses an empty payload */ }
             });
-            pal.addEventListener("dragover", (e) => {
-                if (this._dragFrom == null) return;
+            /* Two kinds of drag land here: one of the palette's own swatches
+               being reordered, and a swatch dragged in from the generated
+               palette. They differ only in where they came from, so the
+               position under the pointer is worked out once and the source
+               decides what happens with it. */
+            const dropIndex = (e) => {
                 const sw = e.target.closest && e.target.closest("sac-swatch");
-                if (!sw || sw.parentElement !== pal) return;
+                return (sw && sw.parentElement === pal)
+                    ? { at: Array.prototype.indexOf.call(pal.children, sw), sw: sw }
+                    : { at: this.palette.length, sw: null };   // past the last cell
+            };
+            pal.addEventListener("dragover", (e) => {
+                const incoming = e.dataTransfer.types.indexOf(DRAG_TYPE) >= 0;
+                if (this._dragFrom == null && !incoming) return;
                 e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                this.markDropTarget(sw);
+                e.dataTransfer.dropEffect = incoming ? "copy" : "move";
+                const t = dropIndex(e);
+                if (t.sw) this.markDropTarget(t.sw);
             });
             pal.addEventListener("drop", (e) => {
-                if (this._dragFrom == null) return;
-                const sw = e.target.closest && e.target.closest("sac-swatch");
-                if (!sw || sw.parentElement !== pal) return;
+                const t = dropIndex(e);
+                if (this._dragFrom != null) { e.preventDefault(); this.dropAt(t.at); return; }
+                const raw = e.dataTransfer.getData(DRAG_TYPE);
+                if (!raw) return;
                 e.preventDefault();
-                const to = Array.prototype.indexOf.call(pal.children, sw);
-                this.dropAt(to);
+                this.endDrag();
+                let entry = null;
+                try { entry = this.normalizeEntry(JSON.parse(raw)); } catch (err) { return; }
+                if (!entry) return;
+                // Already kept: point at the one that is there rather than
+                // quietly making a second copy of the same colour.
+                const at = this.palette.findIndex((x) => x.hex === entry.hex);
+                if (at >= 0) { this.selectEntry(at); this.toast("Already in the palette"); return; }
+                this.palette.splice(t.at, 0, entry);
+                this.selectEntry(t.at);
             });
             pal.addEventListener("dragend", () => this.endDrag());
 
@@ -530,34 +578,35 @@
                 const before = this.palette.length;
                 for (const s of this._harmony.hues.concat(this._harmony.neutrals)) {
                     if (this.hasColour(s.hex)) continue;
-                    // The generator hands over the recipe that made each
-                    // swatch, so what lands in the palette is adjustable
-                    // rather than a dead value.
-                    this.palette.push(s.recipe
-                        ? { hex: s.hex, buckets: s.recipe.map((b) => ({ c: b.c, w: b.w })),
-                            mode: this.mode, shelf: this.shelf }
-                        : this.entryOf(s.hex));
+                    this.palette.push(this.entryFromHarmony(s));
                 }
                 const added = this.palette.length - before;
                 if (added) { this.renderPalette(); this.savePalette(); this.commit(); }
                 this.toast(added ? "Added " + added + " to the palette" : "Already in the palette");
             });
-            // The ramp is already labelled on the scale a design system uses,
-            // so getting from "nice colours" to "tokens I can build on" should
-            // be a copy rather than a retyping job.
-            this.q(".cb-harm-css").addEventListener("click", () => {
-                if (!this._harmony || !window.cbHarmony) return;
-                this.copyRaw(cbHarmony.toCSS(this._harmony),
-                    "Copied the palette as CSS custom properties");
-            });
 
             /* The harmony grids copy on click. The PALETTE grid does not:
                it is selectable, so a click there means "act on this one" and
-               the ribbon carries the actions. */
-            for (const cls of [".cb-harm-hues", ".cb-harm-neutrals"]) {
-                this.q(cls).addEventListener("click", (e) => {
+               the toolbar carries the actions. */
+            for (const key of ["hues", "neutrals"]) {
+                const grid = this.q(".cb-harm-" + key);
+                grid.addEventListener("click", (e) => {
                     const sw = e.target.closest("sac-swatch");
                     if (sw) this.copy(String(sw.getAttribute("value")).toUpperCase());
+                });
+                // …and dragged into the palette, which is the same gesture the
+                // palette already uses to reorder itself. What travels is the
+                // whole entry: colour, recipe and name.
+                grid.addEventListener("dragstart", (e) => {
+                    const sw = e.target.closest && e.target.closest("sac-swatch");
+                    if (!sw || sw.parentElement !== grid || !this._harmony) return;
+                    const src = this._harmony[key][Array.prototype.indexOf.call(grid.children, sw)];
+                    if (!src) return;
+                    e.dataTransfer.effectAllowed = "copy";
+                    try {
+                        e.dataTransfer.setData(DRAG_TYPE, JSON.stringify(this.entryFromHarmony(src)));
+                        e.dataTransfer.setData("text/plain", src.hex);
+                    } catch (err) { /* Safari refuses some payloads */ }
                 });
             }
 
@@ -672,6 +721,24 @@
             this.savePalette();
         }
 
+        /** A swatch out of the generated palette, kept. Two things ride along
+            that a hand-mixed colour has not got: the recipe that made it, so it
+            stays adjustable, and the NAME it had in the generated palette —
+            "neutral 500", "Cadmium Yellow + Ultramarine Blue" — which is what
+            lets the CSS export emit a token rather than a numbered colour. */
+        entryFromHarmony(sw) {
+            const neutral = this._harmony && this._harmony.neutrals.indexOf(sw) >= 0;
+            return {
+                hex: sw.hex,
+                buckets: sw.recipe
+                    ? sw.recipe.map((b) => ({ c: b.c, w: b.w }))
+                    : [{ c: sw.hex, w: 1 }],
+                mode: this.mode,
+                shelf: this.shelf,
+                label: neutral ? "neutral " + sw.label : sw.label,
+            };
+        }
+
         /** A colour with no recipe but its own: one part of itself. */
         entryOf(hex) {
             return {
@@ -696,12 +763,16 @@
                                    w: Math.min(MAX_PARTS, Math.max(1, Number(b.w) || 1)) }))
                 : null;
             const hex = String(raw.hex).toUpperCase();
-            return {
+            const out = {
                 hex: hex,
                 buckets: bs && bs.length ? bs : [{ c: hex, w: 1 }],
                 mode: raw.mode === "rgb" ? "rgb" : "pigment",
                 shelf: raw.shelf && shelfById(raw.shelf) ? raw.shelf : "oils",
             };
+            // A name earned in a generated palette is what the CSS export turns
+            // into a token, so it has to survive storage and undo like the rest.
+            if (typeof raw.label === "string" && raw.label) out.label = raw.label;
+            return out;
         }
 
         hasColour(hex) {
@@ -1054,7 +1125,6 @@
             for (const sw of grid.children) sw.setAttribute("draggable", "true");
             // Only ever true in the moment before the stored palette lands.
             grid.hidden = !this.palette.length;
-            this.q(".cb-copy-pal").hidden = !this.palette.length;
             this.syncPaletteButtons();
         }
 
@@ -1141,11 +1211,14 @@
 
             this.q(".cb-harm-hues").colors =
                 built.hues.map((h) => ({ value: h.hex, label: h.label }));
+            // .colors rebuilds the children, so this is set per render.
+            for (const sw of this.q(".cb-harm-hues").children) sw.setAttribute("draggable", "true");
             // The ramp step rides in `count`: the pill is a small corner label,
             // and "500" is exactly what has to stay readable on the swatch for
             // these to be usable as tokens.
             this.q(".cb-harm-neutrals").colors = built.neutrals.map((n) =>
                 ({ value: n.hex, label: n.label + " — " + n.hex, count: n.label }));
+            for (const sw of this.q(".cb-harm-neutrals").children) sw.setAttribute("draggable", "true");
             this.q(".cb-harm-why").textContent =
                 built.sources.length + " pigments · every colour mixed from them";
         }

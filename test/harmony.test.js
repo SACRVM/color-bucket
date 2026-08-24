@@ -225,3 +225,46 @@ test('harmony/recipe: the ratios stay the kind a person could mix', () => {
     const median = largest[Math.floor(largest.length / 2)];
     assert.ok(median <= 60, 'median largest part is ' + median + ', ratios have gone abstract');
 });
+
+/* --------------------------------------------------------- palette CSS --
+   The saved palette exports as tokens too, not just the generated one. What
+   makes that worth anything is the NAME: a ramp step kept from a generated
+   palette is --neutral-500, a hand-mixed colour has no name to offer and is
+   counted. Losing the label would silently turn a token file into a list. */
+
+test('harmony/palette-css: nothing in, nothing out', () => {
+    assert.equal(harmony.paletteToCSS([]), '');
+    assert.equal(harmony.paletteToCSS(null), '');
+});
+
+test('harmony/palette-css: a kept label names the property', () => {
+    const css = harmony.paletteToCSS([
+        { hex: '#96AD2B', label: 'neutral 500' },
+        { hex: '#F2C500', label: 'Cadmium Yellow' },
+    ]);
+    assert.ok(css.includes('--neutral-500: #96AD2B;'), css);
+    assert.ok(css.includes('--cadmium-yellow: #F2C500;'), css);
+});
+
+test('harmony/palette-css: an unnamed colour is counted, not skipped', () => {
+    const css = harmony.paletteToCSS([{ hex: '#112233' }, { hex: '#445566' }]);
+    assert.ok(css.includes('--color-1: #112233;'), css);
+    assert.ok(css.includes('--color-2: #445566;'), css);
+});
+
+test('harmony/palette-css: two colours that slug alike stay distinct', () => {
+    const css = harmony.paletteToCSS([
+        { hex: '#111111', label: 'Same Name' },
+        { hex: '#222222', label: 'same name' },
+    ]);
+    const props = css.split('\n').filter((l) => l.startsWith('--'))
+        .map((l) => l.slice(0, l.indexOf(':')));
+    assert.equal(new Set(props).size, props.length, 'duplicate custom property name');
+});
+
+test('harmony/palette-css: every line is a comment or a custom property', () => {
+    const css = harmony.paletteToCSS([{ hex: '#96AD2B', label: 'neutral 500' }]);
+    for (const line of css.split('\n')) {
+        assert.ok(/^\/\*.*\*\/$/.test(line) || /^--[a-z0-9-]+: #[0-9A-F]{6};$/.test(line), line);
+    }
+});

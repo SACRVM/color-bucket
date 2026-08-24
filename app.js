@@ -146,6 +146,42 @@
        still means something. */
     const DRAG_TYPE = "application/x-color-bucket-entry";
 
+    /* What a swatch says when you point at it. One shape everywhere —
+       name · hex · what it is made of — so the pots, the palette and the
+       generated colours read as the same kind of thing.
+
+       This is the `label` a sac-swatch turns into its native title AND its
+       accessible name, which is why it is written as a sentence rather than
+       as a badge: it has to survive being read aloud. The kit's own bubble
+       cannot be used here — sac-tooltip wraps its trigger, and a wrapped
+       swatch stops being a child of its grid — so the native tooltip is what
+       there is. Reported; the shape below is ours either way. */
+    /* A colour that is not on any shelf has no name to give — it is a mix.
+       "Custom" is the right word for a recipe ROW, where you are about to edit
+       it; in a one-line hover text it says nothing, and the hex says what the
+       thing actually is. */
+    const bucketName = (hex) => {
+        const n = potName(hex);
+        return n === "Custom" ? hex.toUpperCase() : n;
+    };
+    const recipeText = (buckets) =>
+        buckets.map((b) => b.w).join(":") + " " + buckets.map((b) => bucketName(b.c)).join(" · ");
+
+    function swatchTitle(name, hex, buckets) {
+        const parts = [];
+        if (name) parts.push(name);
+        parts.push(hex.toUpperCase());
+        /* The recipe joins only when it adds something. One pot mixed with
+           itself is not a recipe, and an all-equal blend is already spelled
+           out by its name — "Cadmium Yellow + Ultramarine Blue · 1:1 Cadmium
+           Yellow · Ultramarine Blue" says everything twice. What earns the
+           space is an uneven ratio, which is exactly what a ramp step is. */
+        if (buckets && buckets.length > 1 && buckets.some((b) => b.w !== buckets[0].w)) {
+            parts.push(recipeText(buckets));
+        }
+        return parts.join(" · ");
+    }
+
     function potName(hex) {
         hex = hex.toUpperCase();
         for (const s of SHELVES) for (const p of s.pots) if (p.c === hex) return p.name;
@@ -782,8 +818,7 @@
         /** One line naming what made the colour — it becomes the swatch's
             accessible name and its tooltip. */
         entryLabel(entry) {
-            return entry.hex + " — " + entry.buckets.map((b) => b.w).join(":") + " "
-                 + entry.buckets.map((b) => potName(b.c)).join(" · ");
+            return swatchTitle(entry.label || "", entry.hex, entry.buckets);
         }
 
         /** Put a stored recipe back in the mixer, exactly as it was saved. */
@@ -1031,7 +1066,8 @@
             if (this._filled[id]) return;
             const grid = this.q('sac-swatch-grid[data-shelf="' + id + '"]');
             if (!grid) return;
-            grid.colors = shelfById(id).pots.map((p) => ({ value: p.c, label: p.name }));
+            grid.colors = shelfById(id).pots.map((p) =>
+                ({ value: p.c, label: swatchTitle(p.name, p.c) }));
             this._filled[id] = true;
         }
 
@@ -1209,20 +1245,20 @@
             box.hidden = !built;
             if (!built) return;
 
-            this.q(".cb-harm-hues").colors =
-                built.hues.map((h) => ({ value: h.hex, label: h.label }));
+            this.q(".cb-harm-hues").colors = built.hues.map((h) =>
+                ({ value: h.hex, label: swatchTitle(h.label, h.hex, h.recipe) }));
             // .colors rebuilds the children, so this is set per render.
             for (const sw of this.q(".cb-harm-hues").children) sw.setAttribute("draggable", "true");
-            /* The ramp step is a `caption`, not a `count`. The kit names this
-               exact case in its own docs — "a ramp step 500" is the example
-               beside `caption`, and `count` says in as many words that naming a
-               cell with it is misuse. It rode in `count` anyway, and the cost
-               was not tidiness: the pot grid uses `count` CORRECTLY for parts in
-               the recipe, so one pill was saying "three parts" in one place and
-               "step 500" in another. A caption also joins the accessible name,
-               which a badge does not. */
+            /* No badge and no caption on these. The step number was a `count`
+               once — which the kit documents as a count and nothing else, and
+               which put a pill ON the colour and into the browser's drag image.
+               A `caption` fixed that and printed the scale under every cell,
+               which is more furniture than a ramp needs on a colour plane. So
+               the number moved into the one place that costs no pixels until
+               it is asked for: the hover text, in the same shape every other
+               swatch in this app uses. */
             this.q(".cb-harm-neutrals").colors = built.neutrals.map((n) =>
-                ({ value: n.hex, label: n.label + " — " + n.hex, caption: n.label }));
+                ({ value: n.hex, label: swatchTitle("Step " + n.label, n.hex, n.recipe) }));
             for (const sw of this.q(".cb-harm-neutrals").children) sw.setAttribute("draggable", "true");
             this.q(".cb-harm-why").textContent =
                 built.sources.length + " pigments · every colour mixed from them";

@@ -249,6 +249,17 @@ app-color-bucket .cb-harm-title {
    counts made the hues twice the neutrals. */
 app-color-bucket .cb-harm-hues { margin-bottom: 14px; }
 
+/* The ramp captions sit ON the result plane, which is painted from data. The
+   kit draws them with --text-muted, a THEME token that cannot know what colour
+   it has been placed on — against a mixed green they went almost invisible.
+   Re-pointing the token at the computed ink is the same reasoning as the two
+   buttons up there, and it reaches into the swatch's shadow root the only way
+   that is allowed: by inheritance, not by selector. */
+app-color-bucket .cb-harm-hues,
+app-color-bucket .cb-harm-neutrals {
+    --text-muted: color-mix(in srgb, currentColor 72%, transparent);
+}
+
 /* A <sac-swatch> standing alone has no size of its own: inside a grid the grid
    supplies it. The kit sanctions the stand-alone use, so supplying it here is
    the app's job, not a workaround. */

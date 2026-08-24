@@ -1213,11 +1213,16 @@
                 built.hues.map((h) => ({ value: h.hex, label: h.label }));
             // .colors rebuilds the children, so this is set per render.
             for (const sw of this.q(".cb-harm-hues").children) sw.setAttribute("draggable", "true");
-            // The ramp step rides in `count`: the pill is a small corner label,
-            // and "500" is exactly what has to stay readable on the swatch for
-            // these to be usable as tokens.
+            /* The ramp step is a `caption`, not a `count`. The kit names this
+               exact case in its own docs — "a ramp step 500" is the example
+               beside `caption`, and `count` says in as many words that naming a
+               cell with it is misuse. It rode in `count` anyway, and the cost
+               was not tidiness: the pot grid uses `count` CORRECTLY for parts in
+               the recipe, so one pill was saying "three parts" in one place and
+               "step 500" in another. A caption also joins the accessible name,
+               which a badge does not. */
             this.q(".cb-harm-neutrals").colors = built.neutrals.map((n) =>
-                ({ value: n.hex, label: n.label + " — " + n.hex, count: n.label }));
+                ({ value: n.hex, label: n.label + " — " + n.hex, caption: n.label }));
             for (const sw of this.q(".cb-harm-neutrals").children) sw.setAttribute("draggable", "true");
             this.q(".cb-harm-why").textContent =
                 built.sources.length + " pigments · every colour mixed from them";

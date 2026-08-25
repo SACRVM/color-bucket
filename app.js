@@ -150,12 +150,13 @@
        name · hex · what it is made of — so the pots, the palette and the
        generated colours read as the same kind of thing.
 
-       This is the `label` a sac-swatch turns into its native title AND its
+       This is the `label` a sac-swatch turns into its bubble AND its
        accessible name, which is why it is written as a sentence rather than
-       as a badge: it has to survive being read aloud. The kit's own bubble
-       cannot be used here — sac-tooltip wraps its trigger, and a wrapped
-       swatch stops being a child of its grid — so the native tooltip is what
-       there is. Reported; the shape below is ours either way. */
+       as a badge: it has to survive being read aloud. It was the native OS
+       tooltip for a while — sac-tooltip wraps its trigger, and a wrapped
+       swatch stops being a child of its grid — until 2.4.0 gave the swatch an
+       attach-mode bubble of its own. The sentence never changed; only what
+       draws it. */
     /* A colour that is not on any shelf has no name to give — it is a mix.
        "Custom" is the right word for a recipe ROW, where you are about to edit
        it; in a one-line hover text it says nothing, and the hex says what the
@@ -1062,8 +1063,13 @@
             if (this._filled[id]) return;
             const grid = this.q('sac-swatch-grid[data-shelf="' + id + '"]');
             if (!grid) return;
+            /* tooltip: the kit's bubble instead of the OS one — no 1s delay,
+               keyboard-visible, and styled like the rest. The PRESENCE turns it
+               on and the text falls back to the label, so the sentence is still
+               written in exactly one place. A host on an older kit ignores the
+               flag and keeps the native title: absent, not broken. */
             grid.colors = shelfById(id).pots.map((p) =>
-                ({ value: p.c, label: swatchTitle(p.name, p.c) }));
+                ({ value: p.c, label: swatchTitle(p.name, p.c), tooltip: true }));
             this._filled[id] = true;
         }
 
@@ -1151,6 +1157,7 @@
                 value: e.hex,
                 label: this.entryLabel(e),
                 selected: i === this._sel,
+                tooltip: true,
             }));
             // .colors rebuilds the children, so draggable is set here rather
             // than once: it is a property of every swatch this grid holds.
@@ -1250,7 +1257,7 @@
             if (!built) return;
 
             this.q(".cb-harm-hues").colors = built.hues.map((h) =>
-                ({ value: h.hex, label: swatchTitle(h.label, h.hex, h.recipe) }));
+                ({ value: h.hex, label: swatchTitle(h.label, h.hex, h.recipe), tooltip: true }));
             // .colors rebuilds the children, so this is set per render.
             for (const sw of this.q(".cb-harm-hues").children) sw.setAttribute("draggable", "true");
             /* No badge and no caption on these. The step number was a `count`
@@ -1262,7 +1269,7 @@
                it is asked for: the hover text, in the same shape every other
                swatch in this app uses. */
             this.q(".cb-harm-neutrals").colors = built.neutrals.map((n) =>
-                ({ value: n.hex, label: swatchTitle("Step " + n.label, n.hex, n.recipe) }));
+                ({ value: n.hex, label: swatchTitle("Step " + n.label, n.hex, n.recipe), tooltip: true }));
             for (const sw of this.q(".cb-harm-neutrals").children) sw.setAttribute("draggable", "true");
             this.q(".cb-harm-why").textContent =
                 built.sources.length + " pigments · every colour mixed from them";

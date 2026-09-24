@@ -57,7 +57,7 @@ desktop reads), `app.js` (one custom element, one classic script), `app.css`,
   plane inherit `currentColor` because no token can be trusted to contrast
   against an arbitrary mixed color.
 - **Vendor the kit, and never edit it.** Autark since 2026-08-22: `kit/` is a
-  verbatim release copy (`kit/VERSION` — currently **2.4.0**) and `index.html`
+  verbatim release copy (`kit/VERSION` — currently **2.6.0**) and `index.html`
   links it locally. No CDN. Upgrading is *delete `kit/`, unzip the new release*,
   so a local edit is the one thing that breaks the model; fixes belong in the
   appkit and come back in the next release.
@@ -148,6 +148,11 @@ what `onMount` did: every unsubscribe kept, every timer cleared.
   the 50..900 labels mean what they mean in a design system. Targets a shelf
   cannot reach are pulled in only if they are just outside; a step that would
   be indistinguishable from its neighbour is dropped instead of emitted.
+- **On a phone, a host's suite navigation stays out (2026-09-24).** The
+  burger opens the app's sidebar as a drawer; a suite's app list must not
+  render on top of it. `host-nav="wide"` on the `<sac-nav>` (kit 2.6.0) does
+  exactly that; the ⌂ jump in the ribbon still leads home. An older host kit
+  ignores the attribute — degrades, does not break.
 - **Built on SACRVM APPKIT (2026-08-16).** The Shadow-DOM `<color-bucket>`
   plan is dropped: the kit requires light DOM, which is better here anyway
   because the tokens reach the markup. URL recipes, palette storage and theme

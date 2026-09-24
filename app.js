@@ -292,7 +292,7 @@
                 `</sac-tab-panel>`).join("");
 
             this.innerHTML = `
-                <sac-nav app-name="COLOR BUCKET" brand-icon="palette">
+                <sac-nav app-name="COLOR BUCKET" brand-icon="palette" host-nav="wide">
                     <div slot="toolbar" class="toolbar">
                         <button type="button" class="nav-icon-btn cb-undo" title="Undo" aria-label="Undo" disabled>
                             <sac-icon name="undo"></sac-icon></button>
@@ -419,7 +419,12 @@
                HOST's as well as ours: jump-home, the suite's burger entries
                and its own toolbar controls are all rendered by this nav from
                the data the host supplies. Standalone context.host is null and
-               none of it renders. */
+               none of it renders.
+               On a phone the suite's app list stays out of the burger
+               (host-nav="wide" in build()): the drawer is our sidebar — pots,
+               recipe, palette — and a host's navigation must not stack on
+               top of it. The ⌂ jump in the ribbon still leads home. A kit before
+               2.6.0 ignores the attribute and lists the suite as before. */
             this._nav.host = context.host;
             this._nav.setAttribute("brand-href", context.href(""));
 

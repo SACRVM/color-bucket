@@ -292,7 +292,7 @@
                 `</sac-tab-panel>`).join("");
 
             this.innerHTML = `
-                <sac-nav app-name="COLOR BUCKET" brand-icon="palette" host-nav="wide">
+                <sac-nav app-name="COLOR BUCKET" brand-icon="bucket" host-nav="wide">
                     <div slot="toolbar" class="toolbar">
                         <button type="button" class="nav-icon-btn cb-undo" title="Undo" aria-label="Undo" disabled>
                             <sac-icon name="undo"></sac-icon></button>

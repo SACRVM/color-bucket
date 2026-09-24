@@ -210,6 +210,16 @@ sac-window {
     --hover:         color-mix(in srgb, var(--fg) 8%, transparent);   /* hover wash        */
     --hover-strong:  color-mix(in srgb, var(--fg) 14%, transparent);  /* active/press wash */
 
+    /* Transparency checker. --checker is the translucent square a CSS
+       checkerboard lays over whatever surface it sits on (the .checker
+       utility, color wells, swatches). --checker-a/-b are an OPAQUE pair for
+       canvases, which cannot composite over the page (sac-pixel-canvas).
+       --pixel-grid is the hairline between enlarged pixels. */
+    --checker:    color-mix(in srgb, var(--fg) 10%, transparent);
+    --checker-a:  color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --checker-b:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --pixel-grid: color-mix(in srgb, var(--fg) 9%, transparent);
+
     /* Accent derivations — follow --accent automatically, so the per-app
        accent override re-themes these too. */
     --accent-strong: color-mix(in oklab, var(--accent) 82%, var(--sink)); /* hover of primary */
@@ -806,6 +816,19 @@ a.nav-icon-btn { text-decoration: none; }
 @keyframes skeleton-sweep {
     from { transform: translateX(-100%); }
     to   { transform: translateX(100%); }
+}
+
+/* Transparency checker — any surface that shows "nothing here" behind
+   pixels (a preview canvas, an alpha well). Token squares over whatever
+   ground the element has; --checker-size sets the square (default 8px).
+   Pair with image-rendering: pixelated on the canvas/img it backs. */
+.checker {
+    --checker-size: 8px;
+    background-image:
+        linear-gradient(45deg, var(--checker) 25%, transparent 25%, transparent 75%, var(--checker) 75%),
+        linear-gradient(45deg, var(--checker) 25%, transparent 25%, transparent 75%, var(--checker) 75%);
+    background-size: var(--checker-size) var(--checker-size);
+    background-position: 0 0, calc(var(--checker-size) / 2) calc(var(--checker-size) / 2);
 }
 
 /* --------------------------------------------------------------------------

@@ -35,14 +35,17 @@
  *   fire: nobody types Ctrl-K into a text field.
  *
  * API:
- *   register(combo, handler, { description, allowInInput })
+ *   register(combo, handler, { description, group, allowInInput })
  *              → unregister function (idempotent, safe to call twice).
+ *              `group` is an optional heading ("Tools", "Edit", "View") —
+ *              it only sorts the binding in listings such as
+ *              <sac-shortcut-sheet>; matching ignores it.
  *              On match: preventDefault(), then handler(event).
  *              Registering the same combo twice does NOT clobber: the newest
  *              registration wins and unregistering it restores the previous
  *              one (a stack per combo). That is what makes a modal's
  *              temporary "escape" binding safe.
- *   list()     → [{ combo, display, description }] — the ACTIVE binding of
+ *   list()     → [{ combo, display, description, group }] — the ACTIVE binding of
  *              every registered combo (shadowed ones are not listed twice).
  *   format(combo) → display string for a combo, platform-aware:
  *              "ctrl+shift+x" → "Ctrl+Shift+X" (Windows/Linux) / "⌃⇧X" (macOS).
@@ -247,6 +250,7 @@
             const entry = {
                 handler,
                 description:  opts.description ? String(opts.description) : "",
+                group:        opts.group ? String(opts.group) : "",
                 allowInInput: !!opts.allowInInput,
             };
             const stack = stacks.get(canon) || [];
@@ -269,7 +273,7 @@
             const out = [];
             stacks.forEach((stack, combo) => {
                 const top = stack[stack.length - 1];
-                if (top) out.push({ combo, display: display(combo), description: top.description });
+                if (top) out.push({ combo, display: display(combo), description: top.description, group: top.group });
             });
             return out;
         },

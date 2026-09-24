@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- viewport-fit=cover: the kit pads its nav and scroll regions by the
+         safe-area insets, so the page may run under a phone's notch. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <!-- Phone status bar / tab strip. These mirror the kit's --bg seeds (dark /
+         light) because a meta tag cannot read a custom property; the app only
+         seeds --accent, so the kit's grounds are ours. Recheck on re-vendor. -->
+    <meta name="theme-color" content="#0b0f1a" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#eef2f7" media="(prefers-color-scheme: light)">
     <title>Color Bucket</title>
 
     <!-- The harness: the app alone, no desktop, F5 to develop.

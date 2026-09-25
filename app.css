@@ -49,14 +49,6 @@ app-color-bucket .cb-side {
     gap: 0;
 }
 
-/* The shelf tabs scroll, so their natural width is every tab side by side.
-   Since kit 2.12.0 <sac-section> wraps its body in a grid item that keeps
-   min-width: auto, and that width then inflated the whole section: the pots
-   grew and ran out of the rail. Containing the tab group's inline size takes
-   it out of that sum, so it fills the rail instead of setting its width.
-   Remove once the kit's section clamps its own body. */
-app-color-bucket .cb-shelves { contain: inline-size; }
-
 /* ---------------------------------------------------------------- palette --
    The palette's own strip, between the section title and the colours. Only
    the spacing is ours: .toolbar already shrinks .btn to the 32px recipe, and

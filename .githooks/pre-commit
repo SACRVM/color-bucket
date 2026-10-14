@@ -34,7 +34,7 @@ for f in $(git diff --cached --name-only --diff-filter=ACM); do
   allow=$(allowance "$f")
   # Staged content, not the worktree -- what is about to be committed.
   # -I skips binaries so a stray image cannot trip this.
-  n=$(git show ":$f" 2>/dev/null | grep -Eic "$PATTERN")
+  n=$(git show ":$f" 2>/dev/null | grep -IEic "$PATTERN")
   [ -z "$n" ] && n=0
 
   if [ "$n" -gt "$allow" ]; then

@@ -1,0 +1,3 @@
+# Hooks are exec'd by their shebang; a CRLF checkout turns "#!/bin/sh" into
+# "#!/bin/sh\r" and every commit fails with "cannot exec". Keep them LF.
+.githooks/* text eol=lf

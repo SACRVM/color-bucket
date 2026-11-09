@@ -9,8 +9,10 @@ node_modules/
 # blueprint was brought up to date, because it hid the shared project config
 # that is meant to be versioned. The comment outlived the line and said the
 # opposite of what the file did for two commits; this replaces it.
-# What ships: .firepit/config.json (the toolbar buttons) and the knowledge
-# markdown. What does not: the inbox, run logs and the derived search index.
+# What ships: .firepit/config.json (the toolbar buttons) and the pointer file
+# .firepit/knowledge; the knowledge documents live outside this repo. What does
+# not: the inbox, run logs, the derived search index and the pinned digest
+# compiled from those documents (excluded in .git/info/exclude).
 
 # OS / editor cruft
 Thumbs.db

@@ -29,7 +29,7 @@ desktop reads), `app.js` (one custom element, one classic script), `app.css`,
 ## Commands
 
 - `npm run serve` — `npx serve .`, then F5. That is the whole dev loop.
-- `npm test` — 33 tests: reference-engine invariants (`test/mixing.test.js`),
+- `npm test` — 48 tests: reference-engine invariants (`test/mixing.test.js`),
   spectral.js adoption guards (`test/spectral.test.js`), and limited-palette
   structure (`test/harmony.test.js`). Keep green.
 - `npm run proof` — does the engine actually beat a color picker?
@@ -57,7 +57,7 @@ desktop reads), `app.js` (one custom element, one classic script), `app.css`,
   plane inherit `currentColor` because no token can be trusted to contrast
   against an arbitrary mixed color.
 - **Vendor the kit, and never edit it.** Autark since 2026-08-22: `kit/` is a
-  verbatim release copy (`kit/VERSION` — currently **2.17.0**) and `index.html`
+  verbatim release copy (`kit/VERSION` — currently **2.36.0**) and `index.html`
   links it locally. No CDN. Upgrading is *delete `kit/`, unzip the new release*,
   so a local edit is the one thing that breaks the model; fixes belong in the
   appkit and come back in the next release.

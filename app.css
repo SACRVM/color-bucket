@@ -132,11 +132,24 @@ app-color-bucket .cb-row-name {
     margin-bottom: 5px;
 }
 
+/* Two rows, and the second is only ever the colour field's. Since kit 2.36.0
+   an invalid hex keeps its text and the field puts "Not a color – …" under
+   itself, which makes the field 50px tall. In a one-row grid that line pulled
+   the stepper 9px down out of line and stretched the delete button to 50px.
+   The field spans both rows instead; a flexible track takes whatever the
+   message needs, so the first row stays as tall as the controls and the line
+   keeps its centre. No row gap, or the empty second row would add one. */
 app-color-bucket .cb-row-controls {
     display: grid;
     grid-template-columns: 1fr auto auto;
-    gap: 8px;
+    grid-template-rows: auto 1fr;
+    gap: 0 8px;
     align-items: center;
+}
+
+app-color-bucket .cb-row-controls > sac-color-field {
+    grid-row: 1 / span 2;
+    align-self: start;
 }
 
 /* An icon-only button: the kit's .btn is full-width by design (it is a
